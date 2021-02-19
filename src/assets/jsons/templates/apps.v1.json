@@ -1,0 +1,3 @@
+{ "v1.Pod max": "---\nkind: PodMax",
+  "v1.Pod min": "---\nkind: PodMin",
+  "v1.Pod wait forever": "apiVersion: v1\nkind: Pod\nmetadata:\n  namespace: default\n  name: myname\nspec:\n  containers:\n  - name: busybox\n    image: busybox:latest\n    command: [ '/bin/bash', '-c', '--' ]\n    args: [ 'while true; do sleep 30; done;' ]\n"}

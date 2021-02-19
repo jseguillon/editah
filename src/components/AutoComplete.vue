@@ -1,11 +1,8 @@
 // Most of credits goes to :  https://codepen.io/ph1p/pen/GEJYBZ
 <template>
-
-  <div class="autocomplete">
-    <label :for="id">{{label}}</label>
-    <textarea v-if="textarea" :id="id" :rows="rows" :cols="cols" class="autocomplete-input" :placeholder="placeholder" @focusout="focusout" @focus="focus" @keydown.13="chooseItem" @keydown.tab="chooseItem" @keydown.40="moveDown" @keydown.38="moveUp" v-model="inputValue"
-      type="text"></textarea>
-    <input v-else :id="id" class="autocomplete-input" :placeholder="placeholder" @focusout="focusout" @focus="focus" @keydown.13="chooseItem" @keydown.tab="chooseItem" @keydown.40="moveDown" @keydown.38="moveUp" v-model="inputValue" type="text">
+  <div class="autocomplete ui icon input large">
+    <input :id="id" ref="autoinput" class="autocomplete-input" :placeholder="placeholder" @focusout="focusout" @focus="focus" @keydown.13="chooseItem" @keydown.tab="chooseItem" @keydown.40="moveDown" @keydown.38="moveUp" v-model="inputValue" type="text">
+    <i class="circular search link icon"></i>
 
 
     <ul :class="{
@@ -17,7 +14,6 @@
       </li>
     </ul>
   </div>
-
 </template>
 
 <script>
@@ -35,6 +31,7 @@ export default {
     };
   },
   mounted() {
+    this.focusInput()
   },
   computed: {
     listToSearch() {
@@ -56,6 +53,10 @@ export default {
     }
   },
   methods: {
+    focusInput() {
+      console.log(this.$refs.autoinput)
+      this.$refs.autoinput.focus();
+    },
     highlightWord(word) {
       const regex = new RegExp("(" + this.currentWord + ")", "ig");
       return word.replace(regex, '<mark>$1</mark>');
@@ -150,7 +151,7 @@ export default {
   min-width: 250px;
   max-height: 150px;
   margin: 0;
-  margin-top: 5px;
+  margin-top: 30px;
   padding: 0;
   border: 1px solid #eee;
   list-style: none;
