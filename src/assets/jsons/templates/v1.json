@@ -1,0 +1,14 @@
+[ { "name": "📚 v1.Pod max 1", "content": "---\nkind: PodMax" } ,
+  { "name": "📚 v1.Pod max2 ", "content": "---\nkind: PodMax" } ,
+  { "name": "📚 v1.Pod max3", "content": "---\nkind: PodMax" } ,
+  { "name": "📚 v1.Pod max4", "content": "---\nkind: PodMax" } ,
+  { "name": "📚 v1.Pod max5", "content": "---\nkind: PodMax" } ,
+  { "name": "📚 v1.Pod max6", "content": "---\nkind: PodMax" } ,
+  { "name": "📚 v1.Pod max7", "content": "---\nkind: PodMax" } ,
+  { "name": "📚 v1.Pod max8", "content": "---\nkind: PodMax" } ,
+  { "name": "📚 v1.Pod max9", "content": "---\nkind: PodMax" } ,
+  { "name": "📚 v1.Pod max10", "content": "---\nkind: PodMax" } ,
+  { "name": "📚 v1.Pod max11", "content": "---\nkind: PodMax" } ,
+  { "name": "📚 v1.Pod max12", "content": "---\nkind: PodMax" } ,
+  { "name": "🍪 v1.Pod wait forever", "content": "#TODOs : copy paste Linux and Win (shortcuts + buttons) + change name/ change namespace (shortcuts + monaco right click) \napiVersion: v1\nkind: Pod\nmetadata:\n  namespace: default\n  name: myname\nspec:\n  containers:\n  - name: busybox\n    image: busybox:latest\n    command: [ '/bin/bash', '-c', '--' ]\n    args: [ 'while true; do sleep 30; done;' ]\n" }
+]

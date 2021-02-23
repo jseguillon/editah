@@ -1,9 +1,8 @@
 <template>
-<!--  -->
   <div class="ui container">
-    <div>
-      <div class="ui stackable two column grid">
-        <div class="one column row">
+    <div class="ui container segment compact">
+
+        <div class="one column row rowCompact" style="">
           <div class="two column">
                 <div class="input-auto">
                   <AutoComplete ref="autocomplete"
@@ -13,7 +12,11 @@
                 </div>
           </div>
         </div>
-        <div class="two column row">
+    </div>
+
+    <div class="ui container segment">
+      <div class="ui stackable two column grid">
+        <div class="two column row rowCompact" style="">
           <div class="column">
             <div class="name ui input small">
               <input ref="name" placeholder="Name (default: myname)" class="name ui input" @change="replaceTokens" v-model="name" type="text">
@@ -26,22 +29,47 @@
           </div>
         </div>
       </div>
+      <div class="ui divider"></div>
+      <div class="ui">
+          <div class="ui">
+            <Menu :yamlCode="code" />
+          </div>
+          <div class="ui myEdit">
+            <MonacoEditor class="editor ui" ref="editor" v-model="code" language="yaml" v-bind:options="{monOptions}"  @editorDidMount="editorDidMount" />
+        </div>
+      </div>
     </div>
-    <p></p>
-    <div><MonacoEditor class="editor" ref="editor" v-model="code" language="yaml"  v-bind:options="{monOptions}"  @editorDidMount="editorDidMount" /></div>
+    <br/>
 
-  </div>
+      <div class="ui">
+        <button class="ui black toggle button big icon" data-tooltip="Copy to clipboard with Linux End Of Line (='LF' ='\n')" v-bind:class="{ active: isCopyLinuxActive }" @click="linuxClipboard">
+          <i class="check icon" v-if="isCopyLinuxActive"></i>
+          <i class="linux icon" v-if="! isCopyLinuxActive"></i>
+          Copy Linux
+        </button>
+
+        <button class="ui blue toggle button big icon" data-tooltip="Copy to clipboard with Window End Of Line (='CRLF' ='\r\n')" v-bind:class="{ active: isCopyWindowsActive }">
+          <i class="check icon" v-if="isCopyWindowsActive"></i>
+          <i class="windows icon" v-if="! isCopyWindowsActive"></i>
+          Copy windows
+        </button>
+      </div>
+    </div>
+
 </template>
 
 <script>
 import MonacoEditor from 'vue-monaco'
 import AutoComplete from "@/components/AutoComplete.vue"
-import templateList from '@/assets/jsons/templates/apps.v1.json'
+import v1 from '@/assets/jsons/templates/v1.json'
+import appsV1 from '@/assets/jsons/templates/apps.v1.json'
+import Menu from '../components/Menu.vue'
 
 export default {
   components: {
     MonacoEditor,
-    AutoComplete
+    AutoComplete,
+    Menu
   },
   mounted() {
 
@@ -50,20 +78,32 @@ export default {
 
   },
   methods: {
-
-    templateKeys() {
-      return Object.keys(this.templates)
+    getCode() {
+      return this.code
     },
+    linuxClipboard: function () {
+      this.$copyText(this.code).then(function () {
+      }, function () {
+        alert('Can not copy')
+      })
+
+      this.isCopyLinuxActive = true
+      setTimeout(() => this.isCopyLinuxActive = false, 1500)
+    },
+    templateKeys() {
+      return this.templates.map(x => x.name)
+    },
+    filterName(name) {
+      return this.templates.filter(x => x.name.indexOf(name) !== -1)
+    },
+    //FIXME : check event => if previous val != '' => use previous val when searching name
     replaceTokensInString(code) {
-      console.log(this.name);
       if ( this.name != '' ) {
         code = code.replace('name: myname', 'name: ' + this.name )
       }
       if ( this.namespace != '' ) {
         code = code.replace('namespace: default', 'namespace: ' + this.namespace )
       }
-
-      console.log(code)
       return code
     },
     update: function (event) {
@@ -72,16 +112,13 @@ export default {
       // console.log(this)
       // `event` is the native DOM event
       if (event) {
-        console.log(event)
         //alert(event)
         this.$refs.autocomplete.focusout()
-        this.$refs.editor.getEditor().setValue(this.replaceTokensInString(this.templates[event]))
+        this.$refs.editor.getEditor().setValue(this.replaceTokensInString(this.filterName(event)[0].content))
         this.$refs.editor.focus()
       }
     },
-    replaceTokens: function (event){
-
-      console.log(event)
+    replaceTokens: function (){
       this.$refs.editor.getEditor().setValue(this.replaceTokensInString(this.code))
     },
     editorDidMount(editor) {
@@ -90,10 +127,14 @@ export default {
     }
   },
   data() {
+    // Create an array with for input auto select via concact plus name extraction
+    var templates = v1.concat(appsV1)
     return {
-      code: "---\nKind: Pod",
-      monOptions: { tabSize: 2},
-      templates: templateList,
+      code: "sas",
+      isCopyLinuxActive: false,
+      isCopyWindowsActive: false,
+      monOptions: { tabSize: 2 },
+      templates: templates,
       name: '',
       namespace: ''
     }
@@ -102,9 +143,16 @@ export default {
 </script>
 
 <style scoped>
+.row {
+
+}
+.myEdit {
+
+}
 .editor {
-  height: 60%;
-  width: 100%;
+  height: 50%;
+  margin-top: 10px;
+  margin-bottom: 10px;
   font-family: monospace;
   font-size: unset;
   text-align: left;

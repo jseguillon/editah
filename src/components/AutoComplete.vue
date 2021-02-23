@@ -1,8 +1,8 @@
 // Most of credits goes to :  https://codepen.io/ph1p/pen/GEJYBZ
 <template>
-  <div class="autocomplete ui icon input large">
+  <div class="autocomplete ui icon input">
     <input :id="id" ref="autoinput" class="autocomplete-input" :placeholder="placeholder" @focusout="focusout" @focus="focus" @keydown.13="chooseItem" @keydown.tab="chooseItem" @keydown.40="moveDown" @keydown.38="moveUp" v-model="inputValue" type="text">
-    <i class="circular search link icon"></i>
+    <i class="random link icon" @click="randomItem()"></i>
 
 
     <ul :class="{
@@ -53,8 +53,10 @@ export default {
     }
   },
   methods: {
+    randomItem() {
+      window.alert('todo')
+    },
     focusInput() {
-      console.log(this.$refs.autoinput)
       this.$refs.autoinput.focus();
     },
     highlightWord(word) {
@@ -79,19 +81,16 @@ export default {
     },
     selectItem(index) {
       this.selectedIndex = index;
-      console.log("Selected Index");
       this.chooseItem();
     },
     chooseItem(e) {
-      this.clickedChooseItem = true;
-      console.log("ChooseItem");
+      this.clickedChooseItem = true
       if (this.selectedIndex !== -1 && this.searchMatch.length > 0) {
         if (e) {
           e.preventDefault();
         }
         this.setWord(this.searchMatch[this.selectedIndex])
         this.inputValue=this.searchMatch[this.selectedIndex]
-        console.log("Choosed : " + this.selectedIndex)
         this.$emit('selected', this.inputValue, e)
         this.selectedIndex = -1;
       }
