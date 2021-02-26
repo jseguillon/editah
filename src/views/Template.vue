@@ -54,12 +54,11 @@
           Copy windows
         </button>
       </div>
-    </div>
-
+  </div>
 </template>
 
 <script>
-import MonacoEditor from 'vue-monaco'
+import MonacoEditor from '../components/MonacoEditor.js'
 import AutoComplete from "@/components/AutoComplete.vue"
 import v1 from '@/assets/jsons/templates/v1.json'
 import appsV1 from '@/assets/jsons/templates/apps.v1.json'
@@ -98,8 +97,41 @@ export default {
       console.log ("sa   "  +  vm.yamlCodeAsJson )
       } , 500 ),
     getYamlCodeAsJson: function () {
-      console.log(yaml.load(this.code))
-      return yaml.load(this.code)
+      //FIXME : make cleaner with reactive computed
+      try {
+        var result = yaml.load(this.code)
+        this.yamlErr=undefined
+        this.decorator = this.editor.deltaDecorations([ this.decorator ], [ this.getGlyph() ]);
+        return result
+      }
+      catch (error) {
+        this.yamlErr=error
+        this.decorator = this.editor.deltaDecorations([ this.decorator ], [ this.getGlyph() ]);
+        return {}
+      }
+    },
+    getGlyph() {
+      const monaco = require('monaco-editor')
+      if (this.yamlErr !== undefined){
+        return {
+            range: new monaco.Range(this.yamlErr.mark.line+1,this.yamlErr.mark.column,this.yamlErr.mark.line+1,this.yamlErr.mark.column),
+            options: {
+              // isWholeLine: true,
+              className: 'myContentClass2',
+              glyphMarginClassName: 'myGlyphMarginClass2',
+              glyphMarginHoverMessage: { value:  this.yamlErr.reason  }
+            }
+          }
+      }
+      else return {
+            range: new monaco.Range(1,1,13,1),
+            options: {
+              // isWholeLine: true,
+              className: '',
+              glyphMarginClassName: '',
+              glyphMarginHoverMessage: ''
+            }
+      }
     },
     getCode() {
       return this.code
@@ -142,7 +174,9 @@ export default {
     },
     editorDidMount(editor) {
       // Listen to `scroll` event
-      editor.getModel().updateOptions({ tabSize: 2, glyphMargin: true  })
+      editor.getModel().updateOptions({ tabSize: 2 }),
+      this.editor = editor
+      this.decorator = this.editor.deltaDecorations([], [ this.getGlyph() ]);
     }
   },
   watch: {
@@ -161,11 +195,23 @@ export default {
       templates: templates,
       yamlCodeAsJson: {},
       name: '',
-      namespace: ''
+      namespace: '',
+      decorations: Array,
+      editor: Object,
+      yamlErr: undefined
     }
   }
 }
 </script>
+
+<style>
+.myGlyphMarginClass2 {
+	background: red;
+}
+.myContentClass2 {
+	background: lightblue;
+}
+</style>
 
 <style scoped>
 .editor {
