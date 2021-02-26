@@ -5,16 +5,6 @@
 <script>
 const axios = require('axios');
 
-const debounce = (callback, wait) => {
-  let timeoutId = null;
-  return (...args) => {
-    window.clearTimeout(timeoutId);
-    timeoutId = window.setTimeout(() => {
-      callback.apply(null, args);
-    }, wait);
-  };
-}
-
 export default {
   name: "ValidateOnSchemaVersionItem",
   data() {
@@ -22,42 +12,42 @@ export default {
       ready: false,
       valid: null,
       jsonSchema: null,
-      error: null
+      error: null,
+      unRefedSchema: null
     }
   },
   methods: {
-    showLogs: debounce((newVal) => {
+    showLogs: function (newVal, vm) { //debounce((newVal, vm) => {
       console.log("fu !!!")
       console.log(newVal)
-    }, 500)
+      const valid = vm.ajv.validate({ $ref: vm.apiCode + '#' + '/definitions/io.k8s.api.core.v1.Pod' }, newVal)
+      console.log(vm.apiCode)
+
+      if (!valid) console.log(vm.ajv.errors)
+      } //, 500 )
   },
-  mounted() {
+  created() {
     axios
       .get(this.$props.apiURL)
       .then(response => {
-        this.jsonSchema = response.data;
-      });
+        this.ajv.addSchema(response.data, this.apiCode)
+      })
   },
   props: {
+    apiCode: String,
     apiLabel: String,
     apiURL: String,
-    yamlCode: String
+    yamlCode: Object,
+    ajv: Object
   },
   watch: {
     yamlCode: function(newVal, oldVal) {
-      this.showLogs(newVal, oldVal)
+       this.showLogs(newVal, this, oldVal)
     }
   }
 };
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-/* .segment {
-  padding-left: 6px;
-  padding-bottom: 3px;
-  padding-right: 6px;
-  padding-top: 3px;
-} */
 
 </style>

@@ -32,7 +32,7 @@
       <div class="ui divider"></div>
       <div class="ui">
           <div class="ui">
-            <Menu :yamlCode="code" />
+            <Menu :yamlCode="yamlCodeAsJson" />
           </div>
           <div class="ui myEdit">
             <MonacoEditor class="editor ui" ref="editor" v-model="code" language="yaml" v-bind:options="{monOptions}"  @editorDidMount="editorDidMount" />
@@ -65,11 +65,26 @@ import v1 from '@/assets/jsons/templates/v1.json'
 import appsV1 from '@/assets/jsons/templates/apps.v1.json'
 import Menu from '../components/Menu.vue'
 
+const yaml = require('js-yaml');
+
+const debounce = (callback, wait) => {
+  let timeoutId = null;
+  return (...args) => {
+    window.clearTimeout(timeoutId);
+    timeoutId = window.setTimeout(() => {
+      callback.apply(null, args);
+    }, wait);
+  };
+}
+
 export default {
   components: {
     MonacoEditor,
     AutoComplete,
     Menu
+  },
+  created() {
+
   },
   mounted() {
 
@@ -78,6 +93,14 @@ export default {
 
   },
   methods: {
+    debouncedYamlCodeAsJson: debounce( (vm)  => {
+      vm.yamlCodeAsJson=vm.getYamlCodeAsJson()
+      console.log ("sa   "  +  vm.yamlCodeAsJson )
+      } , 500 ),
+    getYamlCodeAsJson: function () {
+      console.log(yaml.load(this.code))
+      return yaml.load(this.code)
+    },
     getCode() {
       return this.code
     },
@@ -107,10 +130,6 @@ export default {
       return code
     },
     update: function (event) {
-      // `this` inside methods points to the Vue instance
-      // alert('Hello ' + this )
-      // console.log(this)
-      // `event` is the native DOM event
       if (event) {
         //alert(event)
         this.$refs.autocomplete.focusout()
@@ -123,18 +142,24 @@ export default {
     },
     editorDidMount(editor) {
       // Listen to `scroll` event
-      editor.getModel().updateOptions({ tabSize: 2 })
+      editor.getModel().updateOptions({ tabSize: 2, glyphMargin: true  })
+    }
+  },
+  watch: {
+    code: function() {
+      this.debouncedYamlCodeAsJson(this)
     }
   },
   data() {
     // Create an array with for input auto select via concact plus name extraction
     var templates = v1.concat(appsV1)
     return {
-      code: "sas",
+      code: "sas\nds\nddza\n",
       isCopyLinuxActive: false,
       isCopyWindowsActive: false,
       monOptions: { tabSize: 2 },
       templates: templates,
+      yamlCodeAsJson: {},
       name: '',
       namespace: ''
     }
@@ -143,12 +168,6 @@ export default {
 </script>
 
 <style scoped>
-.row {
-
-}
-.myEdit {
-
-}
 .editor {
   height: 50%;
   margin-top: 10px;

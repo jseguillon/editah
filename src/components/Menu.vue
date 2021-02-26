@@ -2,7 +2,7 @@
   <div class="ui pointing menu">
     <!-- @click="showEdit()" -->
     <a class="active item" >code</a>
-    <ValidateOnSchemaList :yamlCode="yamlCode"/>
+    <ValidateOnSchemaList :yamlCode="yamlCode" />
   </div>
 </template>
 
@@ -10,12 +10,12 @@
 import ValidateOnSchemaList from '../components/ValidateOnSchemaList.vue'
 
 export default {
-  name: "ValidateOnSchema",
+  name: "Menu",
   components: {
     ValidateOnSchemaList
   },
   props: {
-    yamlCode: String
+    yamlCode: Object
   },
   mounted() {
   }
