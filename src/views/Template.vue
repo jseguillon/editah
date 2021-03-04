@@ -1,8 +1,8 @@
 <template>
-  <div class="ui container">
-    <div class="ui container segment compact">
+  <div class="ui long ">
+    <div class="ui segment">
 
-        <div class="one column row rowCompact" style="">
+        <div class="one column row " style="">
           <div class="two column">
                 <div class="input-auto">
                   <AutoComplete ref="autocomplete"
@@ -14,9 +14,9 @@
         </div>
     </div>
 
-    <div class="ui container segment">
+    <div class="ui  segment">
       <div class="ui stackable two column grid">
-        <div class="two column row rowCompact" style="">
+                <div class="two column row rowCompact" style="">
           <div class="column">
             <div class="name ui input small">
               <input ref="name" placeholder="Name (default: myname)" class="name ui input" @change="replaceTokens" v-model="name" type="text">
@@ -30,14 +30,9 @@
         </div>
       </div>
       <div class="ui divider"></div>
-      <div class="ui">
-          <div class="ui">
-            <Menu :yamlCode="yamlCodeAsJson" />
-          </div>
-          <div class="ui myEdit">
-            <MonacoEditor class="editor ui" ref="editor" v-model="code" language="yaml" v-bind:options="{monOptions}"  @editorDidMount="editorDidMount" />
-        </div>
-      </div>
+
+      <MonacoEditor class="editor ui" ref="editor" v-model="code" language="yaml" v-bind:options="{monOptions}"  @editorDidMount="editorDidMount" />
+      <Validate :yamlCode="yamlCodeAsJson" />
     </div>
     <br/>
 
@@ -62,7 +57,7 @@ import MonacoEditor from '../components/MonacoEditor.js'
 import AutoComplete from "@/components/AutoComplete.vue"
 import v1 from '@/assets/jsons/templates/v1.json'
 import appsV1 from '@/assets/jsons/templates/apps.v1.json'
-import Menu from '../components/Menu.vue'
+import Validate from '../components/Validate.vue'
 
 const yaml = require('js-yaml');
 
@@ -80,7 +75,7 @@ export default {
   components: {
     MonacoEditor,
     AutoComplete,
-    Menu
+    Validate
   },
   created() {
 
@@ -93,13 +88,13 @@ export default {
   },
   methods: {
     debouncedYamlCodeAsJson: debounce( (vm)  => {
-      vm.yamlCodeAsJson=vm.getYamlCodeAsJson()
-      console.log ("sa   "  +  vm.yamlCodeAsJson )
+      vm.yamlCodeAsJson=vm.getYamlCodeAsJson()[0]
+      console.log ("sa   "  +  vm.yamlCodeAsJson[0] )
       } , 500 ),
     getYamlCodeAsJson: function () {
       //FIXME : make cleaner with reactive computed
       try {
-        var result = yaml.load(this.code)
+        var result = yaml.loadAll(this.code)
         this.yamlErr=undefined
         this.decorator = this.editor.deltaDecorations([ this.decorator ], [ this.getGlyph() ]);
         return result
@@ -214,8 +209,9 @@ export default {
 </style>
 
 <style scoped>
+
 .editor {
-  height: 50%;
+  height: 60%;
   margin-top: 10px;
   margin-bottom: 10px;
   font-family: monospace;
@@ -230,10 +226,17 @@ export default {
   padding-right: 10px;
 }
 
+.schemaUrl {
+  width: 93%;
+}
 .namespace {
   min-width: 80%;
 }
 .name {
   min-width: 80%;
+}
+.long {
+  width: 86%;
+  margin-left: 7%;
 }
 </style>
