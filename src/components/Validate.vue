@@ -7,15 +7,14 @@
     </div> -->
         <div class="myicon">
         <i class="bigger icons"  @click="toggleInfoBox()">
-            <i class="round-bubble circular inverted thumbs link icon" v-bind:class="{ 'up': (!invalidYaml && !invalid), 'green': (!invalidYaml && !invalid), 'red': invalidYaml || invalid, 'down': invalidYaml || invalid}"  style="box-shadow: 5px 10px 5px 0px rgba(0,0,0,0.75);"></i>
+            <i class="round-bubble circular inverted thumbs link icon" v-bind:class="{ 'up': parseErrors.length == 0, 'green': parseErrors.length == 0, 'red': parseErrors.length != 0, 'down': parseErrors.length != 0}"  style="box-shadow: 5px 10px 5px 0px rgba(0,0,0,0.75);"></i>
         </i>
         </div>
             <div class="bubble  circular" >
     <transition name="slide-fade">
       <div id="infobox" v-if="showInfoBox"  v-bind:class="{ 'background-brick': parseErrors.length > 0 || invalid, 'green': ( parseErrors.length == 0 && !invalidYaml) }" >
 
-        <div id="quickMessage" v-if="invalidYaml">bad yaml </div>
-        <div id="quickMessage" v-if="parseErrors.length > 0">not valid against schema:
+        <div id="quickMessage" v-if="parseErrors.length > 0">errors:
           <ul id="errors" class="overflow" style=" ">
             <li v-for="(result,index) in parseErrors" :key="`result-${index}`" v-html="result.dataPath + ': ' +  result.message + '<br/> (from: ' + result.schemaPath + ')'" />
           </ul>
@@ -60,7 +59,11 @@
 <script>
 const axios = require('axios');
 const Ajv = require("ajv").default
-const _ajv = new Ajv( {removeAdditional: "all",   strict: false, strictRequired: true, allErrors: true})
+const _ajv = new Ajv( {removeAdditional: "all",   strict: false, allErrors: true})
+const jsonpatch = require('fast-json-patch');
+const yaml = require('js-yaml');
+
+import parseCST from 'yaml/parse-cst'
 
 export default {
   name: "ValidateOnSchemaVersionItem",
@@ -83,6 +86,43 @@ export default {
   computed: {
   },
   methods: {
+    findNode(key, elements, parent) {
+      if (elements === undefined || elements === null) {
+          return
+      }
+
+      let parsedKeys = key.split("/")
+
+      if (elements.type === "PLAIN") {
+          return elements
+      }
+      if (elements.type === "MAP") {
+          let items = elements.items
+          for (let i=0; i < items.length; i++) {
+              if (items[i].strValue === parsedKeys[0]) {
+                  if (items.length == 1) {
+                    return items[i]
+                  }
+                  console.log(items[i].toString())
+                  if (items[i+1].type === "MAP_VALUE") {
+                      return this.findNode(parsedKeys.slice(1).join("/"), items[i+1].node, elements)
+                  }
+                  return
+              }
+          }
+          return
+      }
+      if (elements.type === "SEQ") {
+          const index = parseInt(parsedKeys[0], 10)
+          let items = elements.items
+
+          if (items[index] !== undefined){
+            return this.findNode(parsedKeys.slice(1).join("/"), items[index].node, elements)
+          } else {
+            return parent
+          }
+      }
+    },
     toggleInfoBox: function() {
       this.showInfoBox = ! this.showInfoBox;
     },
@@ -90,14 +130,41 @@ export default {
       this.showConfig = ! this.showConfig;
     },
     parse: function (doc, vm) {
-      console.log("rehrere " + 'schema#' + '/definitions/io.k8s.api.core.' + doc.apiVersion + '.' + doc.kind)
-      const valid = vm.ajv.validate({ $ref: 'schema#' + eval(this.jsonSchemaRef) }, doc)
-      console.log("aa")
-      console.log(doc)
+      console.log("1"); console.log(doc)
+      var docAsJson;
+      try {
+        docAsJson = yaml.loadAll(doc)[0] //FIXME multi doc (CST first?)
+        //FIXME :
+        //=> in Template (or Editor ? : decorator update) this.decorator = this.editor.deltaDecorations([ this.decorator ], [ this.getGlyph() ]);
+      }
+      catch (error) {
+        this.parseErrors = [{"type": "yaml", "message": error.reason, "line": error.mark.line+1, "column": error.mark.colum}]
+        this.showInfoBox=true
+        return
+        //this.decorator = this.editor.deltaDecorations([ this.decorator ], [ this.getGlyph() ]);
+      }
+
+      var parsed=parseCST(doc)
+      try {
+      //find will be called on each error after reformat path FIXME : multi doc + doc begins with comment block
+        console.log(this.findNode("spec/containers",parsed[0].contents[0]).range.start)
+      } catch(e){
+        console.log(e) //will only have no line if exception on solving path via CST
+      }
+
+      var oldDocAsJson=JSON.parse(JSON.stringify(docAsJson))
+
+      //FIXME : nunjucks config detection
+      const valid = vm.ajv.validate({ $ref: 'schema#' + '/definitions/io.k8s.api.core.' + docAsJson.apiVersion + '.' + docAsJson.kind }, docAsJson) //eval(this.jsonSchemaRef)
+
+      //TODO : at end of treatment : emit new errors event for futur glyphs update
+      //this.$emit('parsed', this.errors, e)
+
+      //need the findNode function to be a common module => need it to resolve
 
       if (!valid) {
         this.invalid=true
-        this.parseErrors = vm.ajv.errors
+        this.parseErrors = vm.ajv.errors //TODO add a {"type": "schema", "errors": ajvErr }
         this.showInfoBox=true
         console.log(this.parseErrors)
       }
@@ -105,6 +172,14 @@ export default {
         this.invalid=false
         this.showInfoBox=false
         this.parseErrors = []
+      }
+      //FIXME : add removed fields as errors => write a function to that and override /metadata
+      var jsonDiffs = jsonpatch.compare(oldDocAsJson, JSON.parse(JSON.stringify(docAsJson)), true)
+      for (var i=0; i < jsonDiffs.length; i++){
+        if (jsonDiffs[i].op === "remove") {
+          this.parseErrors.push({"type": "unknown", "message": "neeed remove", "path": jsonDiffs[i].path})
+          this.showInfoBox=true
+        }
       }
     }
   },
@@ -117,11 +192,11 @@ export default {
       })
   },
   props: {
-    yamlCode: Object
+    code: String
   },
   watch: {
-    yamlCode: function(newVal, oldVal) {
-       this.parse(newVal, this, oldVal)
+    code: function(newVal, oldVal) {
+      this.parse(newVal, this, oldVal)
     },
     jsonSchemaURL: function(newVal) {
       console.log(newVal)

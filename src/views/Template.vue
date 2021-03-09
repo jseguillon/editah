@@ -32,7 +32,7 @@
       <div class="ui divider"></div>
 
       <MonacoEditor class="editor ui" ref="editor" v-model="code" language="yaml" v-bind:options="{monOptions}"  @editorDidMount="editorDidMount" />
-      <Validate :yamlCode="yamlCodeAsJson" />
+      <Validate :code="debouncedCode" />
     </div>
     <br/>
 
@@ -58,8 +58,6 @@ import AutoComplete from "@/components/AutoComplete.vue"
 import v1 from '@/assets/jsons/templates/v1.json'
 import appsV1 from '@/assets/jsons/templates/apps.v1.json'
 import Validate from '../components/Validate.vue'
-
-const yaml = require('js-yaml');
 
 const debounce = (callback, wait) => {
   let timeoutId = null;
@@ -87,24 +85,10 @@ export default {
 
   },
   methods: {
-    debouncedYamlCodeAsJson: debounce( (vm)  => {
-      vm.yamlCodeAsJson=vm.getYamlCodeAsJson()[0]
-      console.log ("sa   "  +  vm.yamlCodeAsJson[0] )
+    setDebouncedCode: debounce( (vm)  => {
+      vm.debouncedCode=vm.code
+      console.log ("sa   "  +  vm.code )
       } , 500 ),
-    getYamlCodeAsJson: function () {
-      //FIXME : make cleaner with reactive computed
-      try {
-        var result = yaml.loadAll(this.code)
-        this.yamlErr=undefined
-        this.decorator = this.editor.deltaDecorations([ this.decorator ], [ this.getGlyph() ]);
-        return result
-      }
-      catch (error) {
-        this.yamlErr=error
-        this.decorator = this.editor.deltaDecorations([ this.decorator ], [ this.getGlyph() ]);
-        return {}
-      }
-    },
     getGlyph() {
       const monaco = require('monaco-editor')
       if (this.yamlErr !== undefined){
@@ -176,7 +160,7 @@ export default {
   },
   watch: {
     code: function() {
-      this.debouncedYamlCodeAsJson(this)
+      this.setDebouncedCode(this)
     }
   },
   data() {
@@ -184,6 +168,7 @@ export default {
     var templates = v1.concat(appsV1)
     return {
       code: "sas\nds\nddza\n",
+      debouncedCode: "",
       isCopyLinuxActive: false,
       isCopyWindowsActive: false,
       monOptions: { tabSize: 2 },
