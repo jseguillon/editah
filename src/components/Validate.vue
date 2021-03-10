@@ -16,7 +16,7 @@
 
         <div id="quickMessage" v-if="parseErrors.length > 0">errors:
           <ul id="errors" class="overflow" style=" ">
-            <li v-for="(result,index) in parseErrors" :key="`result-${index}`" v-html="result.dataPath + ': ' +  result.message + '<br/> (from: ' + result.schemaPath + ')'" />
+            <li v-for="(result,index) in parseErrors" :key="`result-${index}`" v-html="result.dataPath + ': ' +  result.message + '<br/> (line: ' + result.line + ') (from: ' + result.schemaPath + ')'" />
           </ul>
         </div>
         <p id="quickMessage" v-if="( parseErrors.length == 0  && !invalid)">Document is valid against schema <br/> Good job !</p>
@@ -88,25 +88,40 @@ export default {
   methods: {
     findNode(key, elements, parent) {
       if (elements === undefined || elements === null) {
-          return
+          return parent
+      }
+      console.log(" ---- " + elements.type + " - " + elements.strValue)
+
+      // Very first level : can only be an array
+      if (elements.type === "DOCUMENT") {
+        //only deal with Collections
+        for (var i=0; i < elements.contents.length; i++){
+          if (elements.contents[i].type === "MAP" ){
+            return this.findNode(key, elements.contents[i], elements)
+          }
+        }
       }
 
       let parsedKeys = key.split("/")
 
+      // went at end of tree => return
       if (elements.type === "PLAIN") {
+          console.log("plain" , elements)
           return elements
       }
+      //Iterate the MAP ensuring staying on the path we search
       if (elements.type === "MAP") {
           let items = elements.items
           for (let i=0; i < items.length; i++) {
               if (items[i].strValue === parsedKeys[0]) {
-                  if (items.length == 1) {
+                  // end on the jsonpath
+                  if (parsedKeys.length == 1) {
                     return items[i]
                   }
-                  console.log(items[i].toString())
-                  if (items[i+1].type === "MAP_VALUE") {
+                  // still some part of path to solve
+                  if (items[i+1].type === "MAP_VALUE" ) { // && items[i+1].node !== undefined
                       return this.findNode(parsedKeys.slice(1).join("/"), items[i+1].node, elements)
-                  }
+                   }
                   return
               }
           }
@@ -123,8 +138,15 @@ export default {
           }
       }
     },
+    convertJsonPath(jsonPath){
+      return jsonPath.replace("[", "").replace("]", "").slice(1)
+    },
+    getLineForCharPosition(position, doc){
+      var tmpDoc = doc.slice(0,position)
+      return (tmpDoc.split(/\n/) || []).length
+    },
     toggleInfoBox: function() {
-      this.showInfoBox = ! this.showInfoBox;
+      this.showInfoBox = ! this.showInfoBox
     },
     toggleConfig: function() {
       this.showConfig = ! this.showConfig;
@@ -145,12 +167,9 @@ export default {
       }
 
       var parsed=parseCST(doc)
-      try {
-      //find will be called on each error after reformat path FIXME : multi doc + doc begins with comment block
-        console.log(this.findNode("spec/containers",parsed[0].contents[0]).range.start)
-      } catch(e){
-        console.log(e) //will only have no line if exception on solving path via CST
-      }
+
+      //find will be called on each error after reformat path
+      //FIXME : multi doc + doc begins with comment block
 
       var oldDocAsJson=JSON.parse(JSON.stringify(docAsJson))
 
@@ -164,7 +183,7 @@ export default {
 
       if (!valid) {
         this.invalid=true
-        this.parseErrors = vm.ajv.errors //TODO add a {"type": "schema", "errors": ajvErr }
+        this.parseErrors = vm.ajv.errors
         this.showInfoBox=true
         console.log(this.parseErrors)
       }
@@ -173,11 +192,21 @@ export default {
         this.showInfoBox=false
         this.parseErrors = []
       }
-      //FIXME : add removed fields as errors => write a function to that and override /metadata
+      //FIXME : filter some diffs to be considered as normal (metadata)
       var jsonDiffs = jsonpatch.compare(oldDocAsJson, JSON.parse(JSON.stringify(docAsJson)), true)
+      // Iterate over diffs and solve line position
       for (var i=0; i < jsonDiffs.length; i++){
         if (jsonDiffs[i].op === "remove") {
-          this.parseErrors.push({"type": "unknown", "message": "neeed remove", "path": jsonDiffs[i].path})
+          var line
+          try {
+            var pos = this.findNode(this.convertJsonPath(jsonDiffs[i].path),parsed[0]).range.start
+            line = this.getLineForCharPosition(pos,doc)
+          }
+          catch (e) { console.log(e) }
+
+          //some new errors in the parsing result :)
+          this.parseErrors.push({"type": "unknown", "message": "neeed remove", "path": jsonDiffs[i].path, "line":line})
+
           this.showInfoBox=true
         }
       }
