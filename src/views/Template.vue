@@ -86,10 +86,13 @@ export default {
   },
   methods: {
     setDebouncedCode: debounce( (vm)  => {
+      //enforce ("---") on first line
+      if (! vm.code.startsWith("---")){
+        vm.code = "---\n" + vm.code
+      }
       vm.debouncedCode=vm.code
-      console.log ("sa   "  +  vm.code )
       } , 500 ),
-    getGlyph() {
+    getGlyph() { //FIXME enable glyphs agin  - this.decorator = this.editor.deltaDecorations([ this.decorator ], [ this.getGlyph() ])
       const monaco = require('monaco-editor')
       if (this.yamlErr !== undefined){
         return {

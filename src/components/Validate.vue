@@ -16,7 +16,7 @@
 
         <div id="quickMessage" v-if="parseErrors.length > 0">errors:
           <ul id="errors" class="overflow" style=" ">
-            <li v-for="(result,index) in parseErrors" :key="`result-${index}`" v-html="result.dataPath + ': ' +  result.message + '<br/> (line: ' + result.line + ') (from: ' + result.schemaPath + ')'" />
+            <li v-for="(result,index) in parseErrors" :key="`result-${index}`" v-html="result.dataPath + ': ' +  result.message + '<br/> (line: ' + result.line.relativeLine + '/' + result.line.absoluteLine + ') (from: ' + result.schemaPath + ')'" />
           </ul>
         </div>
         <p id="quickMessage" v-if="( parseErrors.length == 0  && !invalid)">Document is valid against schema <br/> Good job !</p>
@@ -90,7 +90,6 @@ export default {
       if (elements === undefined || elements === null) {
           return parent
       }
-      console.log(" ---- " + elements.type + " - " + elements.strValue)
 
       // Very first level : can only be an array
       if (elements.type === "DOCUMENT") {
@@ -106,7 +105,6 @@ export default {
 
       // went at end of tree => return
       if (elements.type === "PLAIN") {
-          console.log("plain" , elements)
           return elements
       }
       //Iterate the MAP ensuring staying on the path we search
@@ -141,9 +139,10 @@ export default {
     convertJsonPath(jsonPath){
       return jsonPath.replace("[", "").replace("]", "").slice(1)
     },
-    getLineForCharPosition(position, doc){
-      var tmpDoc = doc.slice(0,position)
-      return (tmpDoc.split(/\n/) || []).length
+    getLineForCharPosition(position, doc, fullStringDoc){
+      return { "relativeLine": doc.toString().slice(0,position-doc.valueRange.start+1).split(/\n/).length,
+               "absoluteLine": fullStringDoc.toString().slice(0,position).split(/\n/).length
+              }
     },
     toggleInfoBox: function() {
       this.showInfoBox = ! this.showInfoBox
@@ -151,65 +150,57 @@ export default {
     toggleConfig: function() {
       this.showConfig = ! this.showConfig;
     },
-    parse: function (doc, vm) {
-      console.log("1"); console.log(doc)
+    parse: function (cstDoc, vm, doc_name) {
       var docAsJson;
+      var parseErrors = []
+
       try {
-        docAsJson = yaml.loadAll(doc)[0] //FIXME multi doc (CST first?)
-        //FIXME :
-        //=> in Template (or Editor ? : decorator update) this.decorator = this.editor.deltaDecorations([ this.decorator ], [ this.getGlyph() ]);
+        docAsJson = yaml.loadAll(cstDoc.toString())[0]
+
       }
       catch (error) {
-        this.parseErrors = [{"type": "yaml", "message": error.reason, "line": error.mark.line+1, "column": error.mark.colum}]
-        this.showInfoBox=true
-        return
+        //FIXME : only add doc name if exist (and send to function only if array) => NO : this is render problem not parse
+        parseErrors.push({"type": "yaml", "message": doc_name + error.reason, "line":  { "relativeLine": error.mark.line+1 }, "column": error.mark.colum})
+        return parseErrors
         //this.decorator = this.editor.deltaDecorations([ this.decorator ], [ this.getGlyph() ]);
       }
-
-      var parsed=parseCST(doc)
-
-      //find will be called on each error after reformat path
-      //FIXME : multi doc + doc begins with comment block
 
       var oldDocAsJson=JSON.parse(JSON.stringify(docAsJson))
 
       //FIXME : nunjucks config detection
-      const valid = vm.ajv.validate({ $ref: 'schema#' + '/definitions/io.k8s.api.core.' + docAsJson.apiVersion + '.' + docAsJson.kind }, docAsJson) //eval(this.jsonSchemaRef)
-
-      //TODO : at end of treatment : emit new errors event for futur glyphs update
-      //this.$emit('parsed', this.errors, e)
-
-      //need the findNode function to be a common module => need it to resolve
-
-      if (!valid) {
-        this.invalid=true
-        this.parseErrors = vm.ajv.errors
-        this.showInfoBox=true
-        console.log(this.parseErrors)
+      try {
+        const valid = vm.ajv.validate({ $ref: 'schema#' + '/definitions/io.k8s.api.core.' + docAsJson.apiVersion + '.' + docAsJson.kind }, docAsJson)
+        if (!valid) {
+          this.invalid=true
+          for (var j=0; j < vm.ajv.errors.length; j++){
+            parseErrors.push({"type": "schema", "message":  doc_name + vm.ajv.errors[j]})
+          }
+        }
       }
-      else {
-        this.invalid=false
-        this.showInfoBox=false
-        this.parseErrors = []
+      catch (e) {
+        console.log(e)
       }
       //FIXME : filter some diffs to be considered as normal (metadata)
       var jsonDiffs = jsonpatch.compare(oldDocAsJson, JSON.parse(JSON.stringify(docAsJson)), true)
       // Iterate over diffs and solve line position
       for (var i=0; i < jsonDiffs.length; i++){
         if (jsonDiffs[i].op === "remove") {
-          var line
-          try {
-            var pos = this.findNode(this.convertJsonPath(jsonDiffs[i].path),parsed[0]).range.start
-            line = this.getLineForCharPosition(pos,doc)
-          }
-          catch (e) { console.log(e) }
-
           //some new errors in the parsing result :)
-          this.parseErrors.push({"type": "unknown", "message": "neeed remove", "path": jsonDiffs[i].path, "line":line})
-
-          this.showInfoBox=true
+          parseErrors.push({"type": "remove", "message":  doc_name + "neeed remove", "path": jsonDiffs[i].path})
         }
       }
+    return parseErrors
+    },
+    setLineForErrors(parseErrors, cstDoc, fullStringDoc) {
+      for (var i=0; i<parseErrors.length; i++) {
+        if (parseErrors[i].type !== "yaml" ) {
+          try {
+            var pos = this.findNode(this.convertJsonPath(parseErrors[i].path),cstDoc).range.start
+            parseErrors[i].line = this.getLineForCharPosition(pos,cstDoc, fullStringDoc)
+          } catch(e) {console.log(e)}
+        }
+      }
+      return parseErrors
     }
   },
   created() {
@@ -224,8 +215,24 @@ export default {
     code: String
   },
   watch: {
-    code: function(newVal, oldVal) {
-      this.parse(newVal, this, oldVal)
+    code: function(newVal) {
+      var parsed=parseCST(newVal)
+      //FIXME  : real hardcase ---\n one :one\n      --- (spaces before --- breaks eveything)
+      this.parseErrors=[]
+      var allErrors=[]
+
+      this.showInfoBox=true
+      this.invalid=true
+      // FIXME :           this.showInfoBox=true -         this.showInfoBox=false
+      for (var i=0; i < parsed.length; i++) {
+        var errors = this.parse(parsed[i], this, "Yaml Document "+i) //=> should return bunch of errors
+        if (errors.length > 0) {
+          errors=this.setLineForErrors(errors, parsed[i], newVal)
+          allErrors=allErrors.concat(errors)
+        }
+      }
+      this.parseErrors = allErrors
+      this.$emit('parseErrors', this.parseErrors)
     },
     jsonSchemaURL: function(newVal) {
       console.log(newVal)
@@ -234,7 +241,6 @@ export default {
         .then(response => {
           this.ajv.removeSchema("schema")
           this.ajv.addSchema(response.data, "schema")
-          console.log(response.data)
         })
     }
   }
