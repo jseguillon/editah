@@ -64,6 +64,7 @@ const jsonpatch = require('fast-json-patch');
 const yaml = require('js-yaml');
 
 import parseCST from 'yaml/parse-cst'
+import YAML from 'yaml'
 
 export default {
   name: "ValidateOnSchemaVersionItem",
@@ -150,19 +151,30 @@ export default {
     toggleConfig: function() {
       this.showConfig = ! this.showConfig;
     },
-    parse: function (cstDoc, vm, doc_name) {
+    parse: function (cstDoc, vm, doc_id) {
       var docAsJson;
       var parseErrors = []
 
+
+      try {
+        const doc = new YAML.Document()
+        doc.parse(cstDoc)
+
+        if (doc.errors.length >0 ) {
+          for (var x=0; x < doc.errors.length; x++) {
+            parseErrors.push({ "type": "yaml", "message": doc.errors[x].message, "doc_id": doc_id, "range": doc.errors[x].source.range})
+          }
+          return parseErrors
+        }
+      }
+      catch (e) { console.error("error while parsing YAML", e) }
+
       try {
         docAsJson = yaml.loadAll(cstDoc.toString())[0]
-
       }
-      catch (error) {
-        //FIXME : only add doc name if exist (and send to function only if array) => NO : this is render problem not parse
-        parseErrors.push({"type": "yaml", "message": doc_name + error.reason, "line":  { "relativeLine": error.mark.line+1 }, "column": error.mark.colum})
-        return parseErrors
-        //this.decorator = this.editor.deltaDecorations([ this.decorator ], [ this.getGlyph() ]);
+      catch (e) {
+        console.error("error while loading yaml as Json", e)
+        return
       }
 
       var oldDocAsJson=JSON.parse(JSON.stringify(docAsJson))
@@ -173,12 +185,12 @@ export default {
         if (!valid) {
           this.invalid=true
           for (var j=0; j < vm.ajv.errors.length; j++){
-            parseErrors.push({"type": "schema", "message":  doc_name + vm.ajv.errors[j]})
+            parseErrors.push({"type": "schema", "message": vm.ajv.errors[j], "doc_id": doc_id, "path": vm.ajv.errors[j].dataPath, "schemaPath": vm.ajv.errors[j].schemaPath})
           }
         }
       }
       catch (e) {
-        console.log(e)
+        console.error("error while validating agains jsonc schema:", e)
       }
       //FIXME : filter some diffs to be considered as normal (metadata)
       var jsonDiffs = jsonpatch.compare(oldDocAsJson, JSON.parse(JSON.stringify(docAsJson)), true)
@@ -186,18 +198,22 @@ export default {
       for (var i=0; i < jsonDiffs.length; i++){
         if (jsonDiffs[i].op === "remove") {
           //some new errors in the parsing result :)
-          parseErrors.push({"type": "remove", "message":  doc_name + "neeed remove", "path": jsonDiffs[i].path})
+          parseErrors.push({"type": "remove", "message": "neeed remove", "path": jsonDiffs[i].path, "doc_id": doc_id})
         }
       }
+
     return parseErrors
     },
     setLineForErrors(parseErrors, cstDoc, fullStringDoc) {
       for (var i=0; i<parseErrors.length; i++) {
+        var pos
         if (parseErrors[i].type !== "yaml" ) {
           try {
-            var pos = this.findNode(this.convertJsonPath(parseErrors[i].path),cstDoc).range.start
+            pos = this.findNode(this.convertJsonPath(parseErrors[i].path),cstDoc).range.start
             parseErrors[i].line = this.getLineForCharPosition(pos,cstDoc, fullStringDoc)
-          } catch(e) {console.log(e)}
+          } catch(e) {console.log("could not find path for: ", this.parseErrors[i])}
+        } else {
+          parseErrors[i].line = this.getLineForCharPosition(parseErrors[i].range.start, cstDoc, fullStringDoc)
         }
       }
       return parseErrors
@@ -300,6 +316,7 @@ i.icons .icon:first-child{
   max-width: 600px;
   opacity:0.85;
   right: 15%;
+  min-width: 410px;
 }
 #infobox:hover{
   opacity:1.0;

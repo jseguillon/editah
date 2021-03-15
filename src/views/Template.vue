@@ -32,7 +32,7 @@
       <div class="ui divider"></div>
 
       <MonacoEditor class="editor ui" ref="editor" v-model="code" language="yaml" v-bind:options="{monOptions}"  @editorDidMount="editorDidMount" />
-      <Validate :code="debouncedCode" />
+      <Validate :code="debouncedCode" @parseErrors="parseErrors"  />
     </div>
     <br/>
 
@@ -92,26 +92,28 @@ export default {
       }
       vm.debouncedCode=vm.code
       } , 500 ),
-    getGlyph() { //FIXME enable glyphs agin  - this.decorator = this.editor.deltaDecorations([ this.decorator ], [ this.getGlyph() ])
+    getGlyph(line, parseError) { //FIXME enable glyphs agin  - this.decorator = this.editor.deltaDecorations([ this.decorator ], [ this.getGlyph() ])
       const monaco = require('monaco-editor')
-      if (this.yamlErr !== undefined){
+      if (parseError){
+        //TODO : create full message with good  ol if on type
         return {
-            range: new monaco.Range(this.yamlErr.mark.line+1,this.yamlErr.mark.column,this.yamlErr.mark.line+1,this.yamlErr.mark.column),
+            range: new monaco.Range(line !== undefined? line : 0, 1, line !== undefined? line : 0, 1),
             options: {
-              // isWholeLine: true,
-              className: 'myContentClass2',
-              glyphMarginClassName: 'myGlyphMarginClass2',
-              glyphMarginHoverMessage: { value:  this.yamlErr.reason  }
+              isWholeLine: false,
+              glyphMarginClassName: 'lineError',
+              glyphMarginHoverMessage: [{ value: "type: **" + parseError.type +  "**" + ", reason: **" + (parseError.type === "yaml"?parseError.message:parseError.message.dataPath + ": " +parseError.message.message ) +"**"  }]
             }
           }
       }
       else return {
-            range: new monaco.Range(1,1,13,1),
+            range: new monaco.Range(line,1,line,1),
             options: {
               // isWholeLine: true,
               className: '',
               glyphMarginClassName: '',
-              glyphMarginHoverMessage: ''
+              glyphMarginHoverMessage: '',
+              minimap: false,
+              overviewRuler: false
             }
       }
     },
@@ -159,6 +161,29 @@ export default {
       editor.getModel().updateOptions({ tabSize: 2 }),
       this.editor = editor
       this.decorator = this.editor.deltaDecorations([], [ this.getGlyph() ]);
+    },
+    parseErrors(parseErrors){
+      // Clean old glyphs
+      for (var i = 0; i < this.glyphs.length; i++ ) {
+        this.glyphs[i]=this.getGlyph(this.glyphs[i].range.startLineNumber)
+      }
+      if (this.glyphs.length > 0) {
+        this.decorator = this.editor.deltaDecorations([ this.decorator ], JSON.parse(JSON.stringify(this.glyphs)))
+      }
+
+      //Add new glyphs, ensure only one same line
+      var glyphs_lines = []
+      for (var j = 0; j < parseErrors.length; j++ ){
+        if (! glyphs_lines.includes(parseErrors[j].line.absoluteLine)){
+          var glyph =this.getGlyph(parseErrors[j].line.absoluteLine, parseErrors[j])
+          this.glyphs = this.glyphs.concat(glyph)
+          glyphs_lines.push(parseErrors[j].line.absoluteLine)
+        }
+      }
+      if (this.glyphs.length > 0) {
+        this.decorator = this.editor.deltaDecorations([ this.decorator ], this.glyphs)
+      }
+
     }
   },
   watch: {
@@ -181,18 +206,19 @@ export default {
       namespace: '',
       decorations: Array,
       editor: Object,
-      yamlErr: undefined
+      yamlErr: undefined,
+      glyphs: []
     }
   }
 }
 </script>
 
 <style>
-.myGlyphMarginClass2 {
+.lineError {
 	background: red;
 }
-.myContentClass2 {
-	background: lightblue;
+.lineEasyError {
+	background: rgb(199, 208, 211);
 }
 </style>
 
