@@ -140,9 +140,32 @@ export default {
     convertJsonPath(jsonPath){
       return jsonPath.replace("[", "").replace("]", "").slice(1)
     },
-    getLineForCharPosition(position, doc, fullStringDoc){
-      return { "relativeLine": doc.toString().slice(0,position-doc.valueRange.start+1).split(/\n/).length,
-               "absoluteLine": fullStringDoc.toString().slice(0,position).split(/\n/).length
+    getCharPosition(position, doc, fullStringDoc){
+      //seach first \n after position.start
+      var endOfLine = fullStringDoc.toString().indexOf("\n", position.start)
+      //stop the doc at line of error
+      var slicedDoc=fullStringDoc.toString().slice(0,endOfLine).split(/\n/)
+
+      //Search for non whitespace chars
+      var lastLine=slicedDoc[slicedDoc.length-1]
+      var matches = [...lastLine.matchAll(/\S|$/g)];
+
+      //compute
+      var startColumn
+      var endColumn
+      if (matches.length > 0){
+        startColumn = matches[0].index
+        endColumn = matches[matches.length-1].index
+      } else {
+        startColumn = 0
+        endColumn = lastLine.length
+      }
+
+      return { "relativeLine": doc.toString().slice(0,position.start-doc.valueRange.start+1).split(/\n/).length,
+               "absoluteLine": slicedDoc.length,
+               "startLine": slicedDoc.length,
+               "startColumn": startColumn+1,
+               "endColumn": endColumn+1
               }
     },
     toggleInfoBox: function() {
@@ -209,11 +232,11 @@ export default {
         var pos
         if (parseErrors[i].type !== "yaml" ) {
           try {
-            pos = this.findNode(this.convertJsonPath(parseErrors[i].path),cstDoc).range.start
-            parseErrors[i].line = this.getLineForCharPosition(pos,cstDoc, fullStringDoc)
-          } catch(e) {console.log("could not find path for: ", this.parseErrors[i])}
+            pos = this.findNode(this.convertJsonPath(parseErrors[i].path),cstDoc).range
+            parseErrors[i].line = this.getCharPosition(pos,cstDoc, fullStringDoc)
+          } catch(e) {console.log("could not find path for: ", e)}
         } else {
-          parseErrors[i].line = this.getLineForCharPosition(parseErrors[i].range.start, cstDoc, fullStringDoc)
+          parseErrors[i].line = this.getCharPosition(parseErrors[i].range, cstDoc, fullStringDoc)
         }
       }
       return parseErrors
@@ -241,7 +264,7 @@ export default {
       this.invalid=true
       // FIXME :           this.showInfoBox=true -         this.showInfoBox=false
       for (var i=0; i < parsed.length; i++) {
-        var errors = this.parse(parsed[i], this, "Yaml Document "+i) //=> should return bunch of errors
+        var errors = this.parse(parsed[i], this, i) //=> should return bunch of errors
         if (errors.length > 0) {
           errors=this.setLineForErrors(errors, parsed[i], newVal)
           allErrors=allErrors.concat(errors)
@@ -251,7 +274,6 @@ export default {
       this.$emit('parseErrors', this.parseErrors)
     },
     jsonSchemaURL: function(newVal) {
-      console.log(newVal)
       axios
         .get(newVal)
         .then(response => {

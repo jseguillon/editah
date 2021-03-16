@@ -92,31 +92,6 @@ export default {
       }
       vm.debouncedCode=vm.code
       } , 500 ),
-    getGlyph(line, parseError) { //FIXME enable glyphs agin  - this.decorator = this.editor.deltaDecorations([ this.decorator ], [ this.getGlyph() ])
-      const monaco = require('monaco-editor')
-      if (parseError){
-        //TODO : create full message with good  ol if on type
-        return {
-            range: new monaco.Range(line !== undefined? line : 0, 1, line !== undefined? line : 0, 1),
-            options: {
-              isWholeLine: false,
-              glyphMarginClassName: 'lineError',
-              glyphMarginHoverMessage: [{ value: "type: **" + parseError.type +  "**" + ", reason: **" + (parseError.type === "yaml"?parseError.message:parseError.message.dataPath + ": " +parseError.message.message ) +"**"  }]
-            }
-          }
-      }
-      else return {
-            range: new monaco.Range(line,1,line,1),
-            options: {
-              // isWholeLine: true,
-              className: '',
-              glyphMarginClassName: '',
-              glyphMarginHoverMessage: '',
-              minimap: false,
-              overviewRuler: false
-            }
-      }
-    },
     getCode() {
       return this.code
     },
@@ -163,27 +138,24 @@ export default {
       this.decorator = this.editor.deltaDecorations([], [ this.getGlyph() ]);
     },
     parseErrors(parseErrors){
-      // Clean old glyphs
-      for (var i = 0; i < this.glyphs.length; i++ ) {
-        this.glyphs[i]=this.getGlyph(this.glyphs[i].range.startLineNumber)
-      }
-      if (this.glyphs.length > 0) {
-        this.decorator = this.editor.deltaDecorations([ this.decorator ], JSON.parse(JSON.stringify(this.glyphs)))
-      }
-
-      //Add new glyphs, ensure only one same line
-      var glyphs_lines = []
+      const monaco = require('monaco-editor')
+      const model = this.editor.getModel()
+      monaco.editor.setModelMarkers(model, 'pasrser', [])
+      //monaco.editor.setModelMarkers(model, 'schema', [])
+      var markers = []
       for (var j = 0; j < parseErrors.length; j++ ){
-        if (! glyphs_lines.includes(parseErrors[j].line.absoluteLine)){
-          var glyph =this.getGlyph(parseErrors[j].line.absoluteLine, parseErrors[j])
-          this.glyphs = this.glyphs.concat(glyph)
-          glyphs_lines.push(parseErrors[j].line.absoluteLine)
-        }
+        markers.push({
+          //code: { target: "internal/1", value: "otot" },
+          startLineNumber: parseErrors[j].line.absoluteLine,
+          endLineNumber: parseErrors[j].line.absoluteLine,
+          startColumn: parseErrors[j].line.startColumn,
+          endColumn: parseErrors[j].line.endColumn,
+          message:  "titi",
+          severity: monaco.MarkerSeverity.Error,
+          source: parseErrors[j].type
+        })
       }
-      if (this.glyphs.length > 0) {
-        this.decorator = this.editor.deltaDecorations([ this.decorator ], this.glyphs)
-      }
-
+      monaco.editor.setModelMarkers(model, 'pasrser', markers)
     }
   },
   watch: {
@@ -214,11 +186,8 @@ export default {
 </script>
 
 <style>
-.lineError {
-	background: red;
-}
-.lineEasyError {
-	background: rgb(199, 208, 211);
+.filename {
+  visibility: hidden !important;
 }
 </style>
 
