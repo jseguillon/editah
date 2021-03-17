@@ -141,18 +141,31 @@ export default {
       const monaco = require('monaco-editor')
       const model = this.editor.getModel()
       monaco.editor.setModelMarkers(model, 'pasrser', [])
-      //monaco.editor.setModelMarkers(model, 'schema', [])
+
       var markers = []
       for (var j = 0; j < parseErrors.length; j++ ){
+        var message = ""
+        var source = ""
+        if (parseErrors[j].type === "yaml" ) {
+          message = parseErrors[j].message
+          source  = parseErrors[j].type
+        } else if (parseErrors[j].type === "schema" ) {
+          message = parseErrors[j].message.dataPath + " " + parseErrors[j].message.message
+          source  = parseErrors[j].type + " " + parseErrors[j].message.schemaPath
+        } else if (parseErrors[j].type === "remove" ) {
+          message =  parseErrors[j].path + " " + "unknown field must be removed"
+          source  = "schema"
+        }
+
         markers.push({
           //code: { target: "internal/1", value: "otot" },
           startLineNumber: parseErrors[j].line.absoluteLine,
           endLineNumber: parseErrors[j].line.absoluteLine,
           startColumn: parseErrors[j].line.startColumn,
           endColumn: parseErrors[j].line.endColumn,
-          message:  "titi",
+          message: message,
           severity: monaco.MarkerSeverity.Error,
-          source: parseErrors[j].type
+          source: source
         })
       }
       monaco.editor.setModelMarkers(model, 'pasrser', markers)

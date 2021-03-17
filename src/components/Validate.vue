@@ -136,7 +136,7 @@ export default {
             return parent
           }
       }
-    },
+  },
     convertJsonPath(jsonPath){
       return jsonPath.replace("[", "").replace("]", "").slice(1)
     },
@@ -174,7 +174,7 @@ export default {
     toggleConfig: function() {
       this.showConfig = ! this.showConfig;
     },
-    parse: function (cstDoc, vm, doc_id) {
+    parse: function (cstDoc, vm, doc_id, full_string_doc) {
       var docAsJson;
       var parseErrors = []
 
@@ -185,7 +185,8 @@ export default {
 
         if (doc.errors.length >0 ) {
           for (var x=0; x < doc.errors.length; x++) {
-            parseErrors.push({ "type": "yaml", "message": doc.errors[x].message, "doc_id": doc_id, "range": doc.errors[x].source.range})
+            var pe = new ParseError("yaml", doc.errors[x], doc_id, cstDoc, full_string_doc)
+            parseErrors.push(pe)
           }
           return parseErrors
         }
@@ -208,7 +209,7 @@ export default {
         if (!valid) {
           this.invalid=true
           for (var j=0; j < vm.ajv.errors.length; j++){
-            parseErrors.push({"type": "schema", "message": vm.ajv.errors[j], "doc_id": doc_id, "path": vm.ajv.errors[j].dataPath, "schemaPath": vm.ajv.errors[j].schemaPath})
+            parseErrors.push(new ParseError("schema", vm.ajv.errors[j], doc_id, cstDoc, full_string_doc))
           }
         }
       }
@@ -221,7 +222,7 @@ export default {
       for (var i=0; i < jsonDiffs.length; i++){
         if (jsonDiffs[i].op === "remove") {
           //some new errors in the parsing result :)
-          parseErrors.push({"type": "remove", "message": "neeed remove", "path": jsonDiffs[i].path, "doc_id": doc_id})
+          parseErrors.push(new ParseError("remove", { "message": "neeed remove", "dataPath": jsonDiffs[i].path}, doc_id, cstDoc, full_string_doc))
         }
       }
 
@@ -239,7 +240,7 @@ export default {
           parseErrors[i].line = this.getCharPosition(parseErrors[i].range, cstDoc, fullStringDoc)
         }
       }
-      return parseErrors
+    return parseErrors
     }
   },
   created() {
@@ -264,11 +265,7 @@ export default {
       this.invalid=true
       // FIXME :           this.showInfoBox=true -         this.showInfoBox=false
       for (var i=0; i < parsed.length; i++) {
-        var errors = this.parse(parsed[i], this, i) //=> should return bunch of errors
-        if (errors.length > 0) {
-          errors=this.setLineForErrors(errors, parsed[i], newVal)
-          allErrors=allErrors.concat(errors)
-        }
+        allErrors=allErrors.concat(this.parse(parsed[i], this, i, newVal)) //=> should return bunch of errors
       }
       this.parseErrors = allErrors
       this.$emit('parseErrors', this.parseErrors)
