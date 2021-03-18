@@ -55,6 +55,8 @@
 <script>
 import MonacoEditor from '../components/MonacoEditor.js'
 import AutoComplete from "@/components/AutoComplete.vue"
+// Only dev
+import testsV1 from '@/assets/jsons/templates/tests.json'
 import v1 from '@/assets/jsons/templates/v1.json'
 import appsV1 from '@/assets/jsons/templates/apps.v1.json'
 import Validate from '../components/Validate.vue'
@@ -140,35 +142,14 @@ export default {
     parseErrors(parseErrors){
       const monaco = require('monaco-editor')
       const model = this.editor.getModel()
-      monaco.editor.setModelMarkers(model, 'pasrser', [])
+      monaco.editor.setModelMarkers(model, 'parser', [])
 
       var markers = []
       for (var j = 0; j < parseErrors.length; j++ ){
-        var message = ""
-        var source = ""
-        if (parseErrors[j].type === "yaml" ) {
-          message = parseErrors[j].message
-          source  = parseErrors[j].type
-        } else if (parseErrors[j].type === "schema" ) {
-          message = parseErrors[j].message.dataPath + " " + parseErrors[j].message.message
-          source  = parseErrors[j].type + " " + parseErrors[j].message.schemaPath
-        } else if (parseErrors[j].type === "remove" ) {
-          message =  parseErrors[j].path + " " + "unknown field must be removed"
-          source  = "schema"
-        }
 
-        markers.push({
-          //code: { target: "internal/1", value: "otot" },
-          startLineNumber: parseErrors[j].line.absoluteLine,
-          endLineNumber: parseErrors[j].line.absoluteLine,
-          startColumn: parseErrors[j].line.startColumn,
-          endColumn: parseErrors[j].line.endColumn,
-          message: message,
-          severity: monaco.MarkerSeverity.Error,
-          source: source
-        })
+        markers.push(parseErrors[j].getMarker())
       }
-      monaco.editor.setModelMarkers(model, 'pasrser', markers)
+      monaco.editor.setModelMarkers(model, 'parser', markers)
     }
   },
   watch: {
@@ -178,9 +159,9 @@ export default {
   },
   data() {
     // Create an array with for input auto select via concact plus name extraction
-    var templates = v1.concat(appsV1)
+    var templates = v1.concat(appsV1, testsV1)
     return {
-      code: "sas\nds\nddza\n",
+      code: "---\nwelcome: |\n  Wecome\n  Paste your yaml or select one above",
       debouncedCode: "",
       isCopyLinuxActive: false,
       isCopyWindowsActive: false,

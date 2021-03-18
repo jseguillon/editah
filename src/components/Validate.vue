@@ -19,30 +19,7 @@
             <li v-for="(result,index) in parseErrors" :key="`result-${index}`" v-html="result.dataPath + ': ' +  result.message + '<br/> (line: ' + result.line.relativeLine + '/' + result.line.absoluteLine + ') (from: ' + result.schemaPath + ')'" />
           </ul>
         </div>
-        <p id="quickMessage" v-if="( parseErrors.length == 0  && !invalid)">Document is valid against schema <br/> Good job !</p>
-      <!-- <div class="ui inverted segment" style="margin-top: 5px; margin-bottom: 10px; background: inherit;"> -->
-        <!-- <h4 class="ui horizontal white divider header" style="margin-bottom:2px;"></h4> -->
-        <div class="ui styled accordion configuration" style="margin-bottom:10px; border:1px white solid;  width: auto; margin-right: -30px">
-
-        <div class="title" @click="toggleConfig()" >
-          <i class="dropdown icon" v-bind:class="{ 'active': showConfig }"></i> Configuration
-        </div>
-        <div class="content" v-bind:class="{ 'active': showConfig }" style="width: 100%;  background: white ; color: black;" >
-          <div><label>JsonSchemaURL TODO replace with array [apiVersion: url /ref compute]</label>
-          <textarea ref="schemaUrl" placeholder="Json Schema" style="width: 100%;  background: inherit; color: inherit;" class="name ui input" v-model="jsonSchemaURL" id="textareaURL" type="textarea" rows="2" />
-          </div>
-          <!-- <div><label>update schema when choosing from template list</label>
-          TODO
-          </div> -->
-          <div><label>Json Schema Refs:</label>
-          <textarea ref="schemaRefs" placeholder="Json Schema Ref" style="width: 100%;  background: inherit; color: inherit;" class="name ui input" v-model="jsonSchemaRef" id="textareaURL" type="textarea" rows="2" />
-          </div>
-        </div>
-
-        </div>
-      <!-- </div> -->
-
-
+        <p id="quickMessage" v-if="( parseErrors.length == 0)">Document is valid against schema TODO show version + give chance to change <br/> Good job !</p>
       </div>
       </transition>
 
@@ -59,12 +36,15 @@
 <script>
 const axios = require('axios');
 const Ajv = require("ajv").default
-const _ajv = new Ajv( {removeAdditional: "all",   strict: false, allErrors: true})
+const _ajv = new Ajv( {removeAdditional: "all",   strict: false, allErrors: true,       schemaId: 'auto', format: 'full',  coerceTypes: true, unknownFormats: 'ignore',
+      useDefaults: true})
 const jsonpatch = require('fast-json-patch');
 const yaml = require('js-yaml');
+const nunjucks = require('nunjucks')
 
 import parseCST from 'yaml/parse-cst'
 import YAML from 'yaml'
+import ParseError from '../components/ParseError.js'
 
 export default {
   name: "ValidateOnSchemaVersionItem",
@@ -81,61 +61,37 @@ export default {
       invalid: null,
       parseErrors: [],
       showConfig: false,
-      showInfoBox: false
-    }
-  },
-  computed: {
-  },
-  methods: {
-    findNode(key, elements, parent) {
-      if (elements === undefined || elements === null) {
-          return parent
-      }
-
-      // Very first level : can only be an array
-      if (elements.type === "DOCUMENT") {
-        //only deal with Collections
-        for (var i=0; i < elements.contents.length; i++){
-          if (elements.contents[i].type === "MAP" ){
-            return this.findNode(key, elements.contents[i], elements)
+      showInfoBox: false,
+      refsSchema: {
+        k8s_schemas: {
+          "k8s.io": {
+            "url": "https://raw.githubusercontent.com/kubernetes/kubernetes/release-1.20/api/openapi-spec/swagger.json",
+            "prefix": "/definitions/io.k8s.api.",
+            "default": "core."
+          },
+          "kubevirt.io": {
+            "url": "https://raw.githubusercontent.com/kubevirt/kubevirt/master/api/openapi-spec/swagger.json",
+            "prefix": "/definitions/",
+            "default": ""
           }
         }
-      }
-
-      let parsedKeys = key.split("/")
-
-      // went at end of tree => return
-      if (elements.type === "PLAIN") {
-          return elements
-      }
-      //Iterate the MAP ensuring staying on the path we search
-      if (elements.type === "MAP") {
-          let items = elements.items
-          for (let i=0; i < items.length; i++) {
-              if (items[i].strValue === parsedKeys[0]) {
-                  // end on the jsonpath
-                  if (parsedKeys.length == 1) {
-                    return items[i]
-                  }
-                  // still some part of path to solve
-                  if (items[i+1].type === "MAP_VALUE" ) { // && items[i+1].node !== undefined
-                      return this.findNode(parsedKeys.slice(1).join("/"), items[i+1].node, elements)
-                   }
-                  return
-              }
-          }
-          return
-      }
-      if (elements.type === "SEQ") {
-          const index = parseInt(parsedKeys[0], 10)
-          let items = elements.items
-
-          if (items[index] !== undefined){
-            return this.findNode(parsedKeys.slice(1).join("/"), items[index].node, elements)
-          } else {
-            return parent
-          }
-      }
+      },
+      refsDetection: `{%- set is_k8s = (apiVersion | default("") |length > 0) and (kind | default("") |length > 0) %}
+{%- if is_k8s %}
+# it's a k8s object
+  {%- set is_k8s_crd = apiVersion.split("/")[0].includes(".") %}
+# is this a CRD: {{ is_k8s_crd }}
+  {%- set doc_refs = k8s_schemas[apiVersion.split("/")[0]] if is_k8s_crd else k8s_schemas["k8s.io"] %}
+  {%- set api_ns = apiVersion.split("/") %}
+  {%- set api_ns = api_ns.slice(1) if is_k8s_crd else api_ns  %}
+  {%- set api_ns = api_ns.join('.') if (api_ns | length > 1) else doc_refs.default + api_ns  %}
+# api namespace: {{ api_ns }}
+ref: {{ doc_refs.prefix }}{{ api_ns }}.{{ kind }}
+url: {{ doc_refs.url }}
+{% else %}
+# it's not a k8s object
+{% endif %}`
+    }
   },
     convertJsonPath(jsonPath){
       return jsonPath.replace("[", "").replace("]", "").slice(1)
@@ -203,43 +159,35 @@ export default {
 
       var oldDocAsJson=JSON.parse(JSON.stringify(docAsJson))
 
-      //FIXME : nunjucks config detection
-      try {
-        const valid = vm.ajv.validate({ $ref: 'schema#' + '/definitions/io.k8s.api.core.' + docAsJson.apiVersion + '.' + docAsJson.kind }, docAsJson)
-        if (!valid) {
-          this.invalid=true
-          for (var j=0; j < vm.ajv.errors.length; j++){
-            parseErrors.push(new ParseError("schema", vm.ajv.errors[j], doc_id, cstDoc, full_string_doc))
+
+      var refDetect = yaml.loadAll(nunjucks.renderString(this.refsDetection, Object.assign({}, docAsJson, this.refsSchema)))[0]
+      console.log(refDetect)
+      if (refDetect !== undefined && refDetect !== null ) {
+        var ref = refDetect.ref //refsDetection  'schema#' + '/definitions/io.k8s.api.core.' + docAsJson.apiVersion + '.' + docAsJson.kind
+        try {
+          //FIXME : ref detection may change schema !
+          const valid = vm.ajv.validate({ $ref: 'schema#' +ref }, docAsJson)
+          if (!valid) {
+            this.invalid=true
+            for (var j=0; j < vm.ajv.errors.length; j++){
+              parseErrors.push(new ParseError("schema", vm.ajv.errors[j], doc_id, cstDoc, full_string_doc))
+            }
+          }
+        }
+        catch (e) {
+          console.error("error while validating agains jsonc schema:", e)
+        }
+        //FIXME : filter some diffs to be considered as normal (metadata)
+        var jsonDiffs = jsonpatch.compare(oldDocAsJson, JSON.parse(JSON.stringify(docAsJson)), true)
+        // Iterate over diffs and solve line position
+        for (var i=0; i < jsonDiffs.length; i++){
+          if (jsonDiffs[i].op === "remove") {
+            //some new errors in the parsing result :)
+            parseErrors.push(new ParseError("remove", { "message": "neeed remove", "dataPath": jsonDiffs[i].path}, doc_id, cstDoc, full_string_doc))
           }
         }
       }
-      catch (e) {
-        console.error("error while validating agains jsonc schema:", e)
-      }
-      //FIXME : filter some diffs to be considered as normal (metadata)
-      var jsonDiffs = jsonpatch.compare(oldDocAsJson, JSON.parse(JSON.stringify(docAsJson)), true)
-      // Iterate over diffs and solve line position
-      for (var i=0; i < jsonDiffs.length; i++){
-        if (jsonDiffs[i].op === "remove") {
-          //some new errors in the parsing result :)
-          parseErrors.push(new ParseError("remove", { "message": "neeed remove", "dataPath": jsonDiffs[i].path}, doc_id, cstDoc, full_string_doc))
-        }
-      }
-
-    return parseErrors
-    },
-    setLineForErrors(parseErrors, cstDoc, fullStringDoc) {
-      for (var i=0; i<parseErrors.length; i++) {
-        var pos
-        if (parseErrors[i].type !== "yaml" ) {
-          try {
-            pos = this.findNode(this.convertJsonPath(parseErrors[i].path),cstDoc).range
-            parseErrors[i].line = this.getCharPosition(pos,cstDoc, fullStringDoc)
-          } catch(e) {console.log("could not find path for: ", e)}
-        } else {
-          parseErrors[i].line = this.getCharPosition(parseErrors[i].range, cstDoc, fullStringDoc)
-        }
-      }
+    //FIXME : need to send special ParseError : uknown Api if no ref found
     return parseErrors
     }
   },
