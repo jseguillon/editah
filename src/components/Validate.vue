@@ -36,15 +36,15 @@
 <script>
 const axios = require('axios');
 const Ajv = require("ajv").default
-const _ajv = new Ajv( {removeAdditional: "all",   strict: false, allErrors: true,       schemaId: 'auto', format: 'full',  coerceTypes: true, unknownFormats: 'ignore',
-      useDefaults: true})
+const _ajv = new Ajv( {removeAdditional: "all", strict: false,  allErrors: true, ajvErrors: true}) // coerceTypes: true ? Bullshit : strictRequired: true,   validateSchema: false, useDefaults: false, validateFormats: true...
+const validator = require('./libs/format-validator');
 const jsonpatch = require('fast-json-patch');
 const yaml = require('js-yaml');
 const nunjucks = require('nunjucks')
 
 import parseCST from 'yaml/parse-cst'
 import YAML from 'yaml'
-import ParseError from '../components/ParseError.js'
+import ParseError from '../components/ParseError'
 
 export default {
   name: "ValidateOnSchemaVersionItem",
@@ -93,37 +93,11 @@ url: {{ doc_refs.url }}
 {% endif %}`
     }
   },
-    convertJsonPath(jsonPath){
-      return jsonPath.replace("[", "").replace("]", "").slice(1)
-    },
-    getCharPosition(position, doc, fullStringDoc){
-      //seach first \n after position.start
-      var endOfLine = fullStringDoc.toString().indexOf("\n", position.start)
-      //stop the doc at line of error
-      var slicedDoc=fullStringDoc.toString().slice(0,endOfLine).split(/\n/)
+  computed: {
+    //TODO add computed get to remove some non sense or non understandable errors
 
-      //Search for non whitespace chars
-      var lastLine=slicedDoc[slicedDoc.length-1]
-      var matches = [...lastLine.matchAll(/\S|$/g)];
-
-      //compute
-      var startColumn
-      var endColumn
-      if (matches.length > 0){
-        startColumn = matches[0].index
-        endColumn = matches[matches.length-1].index
-      } else {
-        startColumn = 0
-        endColumn = lastLine.length
-      }
-
-      return { "relativeLine": doc.toString().slice(0,position.start-doc.valueRange.start+1).split(/\n/).length,
-               "absoluteLine": slicedDoc.length,
-               "startLine": slicedDoc.length,
-               "startColumn": startColumn+1,
-               "endColumn": endColumn+1
-              }
-    },
+  },
+  methods: {
     toggleInfoBox: function() {
       this.showInfoBox = ! this.showInfoBox
     },
@@ -133,7 +107,6 @@ url: {{ doc_refs.url }}
     parse: function (cstDoc, vm, doc_id, full_string_doc) {
       var docAsJson;
       var parseErrors = []
-
 
       try {
         const doc = new YAML.Document()
@@ -193,11 +166,16 @@ url: {{ doc_refs.url }}
   },
   created() {
     this.ajv=_ajv
+    this.ajv.addFormat('int32', { type: 'number', validate: validator.int32 });
+    this.ajv.addFormat('int64', { type: 'number', validate: validator.int64 });
+    this.ajv.addFormat('float', { type: 'number', validate: validator.float });
+    this.ajv.addFormat('double', { type: 'number', validate: validator.double });
+    this.ajv.addFormat('byte', { type: 'string', validate: validator.byte });
     axios
-      .get(this.jsonSchemaURL)
-      .then(response => {
-        this.ajv.addSchema(response.data, "schema")
-      })
+    .get(this.jsonSchemaURL)
+    .then(response => {
+      this.ajv.addSchema(response.data, "schema")
+    })
   },
   props: {
     code: String
@@ -223,7 +201,7 @@ url: {{ doc_refs.url }}
         .get(newVal)
         .then(response => {
           this.ajv.removeSchema("schema")
-          this.ajv.addSchema(response.data, "schema")
+          this.this.ajv.addSchema(response.data, "schema")
         })
     }
   }

@@ -137,7 +137,6 @@ export default {
       // Listen to `scroll` event
       editor.getModel().updateOptions({ tabSize: 2 }),
       this.editor = editor
-      this.decorator = this.editor.deltaDecorations([], [ this.getGlyph() ]);
     },
     parseErrors(parseErrors){
       const monaco = require('monaco-editor')
