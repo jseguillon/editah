@@ -16,6 +16,47 @@ export default class ParseError {
     this.position = this.getPosition(cst_doc, full_string_doc )
   }
 
+  static getFilteredErrors(parsedErrors) {
+    //kind: { "message": "neeed remove", "dataPath": "/spec/limits/0/min/cpu" }
+
+    //kind: ResourceQuota  { "message": "neeed remove", "dataPath": "/spec/hard/services.nodeports" }
+
+    var filteredErrors = []
+
+    for (var i =0; i < parsedErrors.length; i++){
+      var currErr = parsedErrors[i]
+      //TODO : case when a structure of match and profit to test OK or not for any missing or "unknown" definition
+      if (currErr.type === "schema" ) {
+        if (currErr.message.schemaPath === "#/definitions/io.k8s.apimachinery.pkg.util.intstr.IntOrString/type"){
+          console.log("time to test #/definitions/io.k8s.apimachinery.pkg.util.intstr.IntOrString/type")
+          //filteredErrors.push(currErr)
+        }
+        else if (currErr.message.schemaPath === "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time/type") {
+          //test if  ISO 8601 compliant and only Warn if not ?
+          console.log("time to test #/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time/type")
+          //filteredErrors.push(currErr)
+        } else {
+          //TODO : may be able to find defintion of schema path and print doc !
+          filteredErrors.push(currErr)
+        }
+      }
+      else if (currErr.type === "remove" ) {
+        //TODO : set a hover for base64 decode proposal for data secrets
+        //TODO : should not ignore but test resources named cpu and memory
+        var matches = [...currErr.message.dataPath.matchAll(/\/data\/.*|\/spec\/selector.*|.*\/spec\/clusterIPs.*|.*\/metadata\/labels.*|.*\/metadata\/annotations.*|.*\/spec\/nodeSelector.*|.*\/resources\/limits.*|.*\/resources\/requests.*/g)]
+        if (matches.length == 0){
+          filteredErrors.push(currErr)
+        }
+      }
+      else {
+        filteredErrors.push(currErr)
+      }
+    }
+
+    return filteredErrors
+    //Enumeration members //Error  Hint Info  Warning <= Warn if ok on N but errors on N-1 or N-2 ? (test N-1 and N-2 only if N is ok)
+  }
+
   getMarker()
   {
     try {

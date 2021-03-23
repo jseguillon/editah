@@ -60,6 +60,7 @@ import testsV1 from '@/assets/jsons/templates/tests.json'
 import v1 from '@/assets/jsons/templates/v1.json'
 import appsV1 from '@/assets/jsons/templates/apps.v1.json'
 import Validate from '../components/Validate.vue'
+import ParseError from '../components/ParseError.js'
 
 const debounce = (callback, wait) => {
   let timeoutId = null;
@@ -144,9 +145,9 @@ export default {
       monaco.editor.setModelMarkers(model, 'parser', [])
 
       var markers = []
-      for (var j = 0; j < parseErrors.length; j++ ){
-
-        markers.push(parseErrors[j].getMarker())
+      var filteredErrors=ParseError.getFilteredErrors(parseErrors)
+      for (var i = 0; i < filteredErrors.length; i++ ){
+        markers.push(filteredErrors[i].getMarker())
       }
       monaco.editor.setModelMarkers(model, 'parser', markers)
     }

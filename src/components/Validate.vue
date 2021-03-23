@@ -1,42 +1,37 @@
 <template>
   <div>
-    <!-- <div class="messages ">
-      <ul class="overflow" style="max-height: 110;overflow: scroll;overflow-x: hidden; outline:solid">
-          <li v-for="(result,index) in parseErrors" :key="`result-${index}`" v-html="result.dataPath"> </li>
-      </ul>
-    </div> -->
-        <div class="myicon">
-        <i class="bigger icons"  @click="toggleInfoBox()">
-            <i class="round-bubble circular inverted thumbs link icon" v-bind:class="{ 'up': parseErrors.length == 0, 'green': parseErrors.length == 0, 'red': parseErrors.length != 0, 'down': parseErrors.length != 0}"  style="box-shadow: 5px 10px 5px 0px rgba(0,0,0,0.75);"></i>
-        </i>
-        </div>
-            <div class="bubble  circular" >
-    <transition name="slide-fade">
-      <div id="infobox" v-if="showInfoBox"  v-bind:class="{ 'background-brick': parseErrors.length > 0 || invalid, 'green': ( parseErrors.length == 0 && !invalidYaml) }" >
+    <div class="myicon">
+    <i class="bigger icons button" data-tooltip="Click for settings" @click="toggleInfoBox()">
+        <i class="round-bubble circular inverted thumbs link icon" v-bind:class="{ 'sync': isLoading, 'grey': isLoading, 'up': (!isLoading && filteredErrors.length == 0), 'green': (!isLoading && filteredErrors.length == 0), 'red': (!isLoading && filteredErrors.length != 0), 'down': (!isLoading && filteredErrors.length != 0)}"  style="box-shadow: 5px 10px 5px 0px rgba(0,0,0,0.75);"></i>
+    </i>
+    </div>
+    <div class="bubble  circular" >
+        <transition name="slide-fade">
+          <div id="infobox" v-if="showInfoBox"  v-bind:class="{ 'background-brick': (!isLoading &&filteredErrors.length > 0), 'green': (!isLoading && filteredErrors.length == 0) ,'grey': isLoading }" >
 
-        <div id="quickMessage" v-if="parseErrors.length > 0">errors:
-          <ul id="errors" class="overflow" style=" ">
-            <li v-for="(result,index) in parseErrors" :key="`result-${index}`" v-html="result.dataPath + ': ' +  result.message + '<br/> (line: ' + result.line.relativeLine + '/' + result.line.absoluteLine + ') (from: ' + result.schemaPath + ')'" />
-          </ul>
+          <div id="quickMessage" v-if="filteredErrors.length > 0">errors:
+            <ul id="errors" class="overflow" style=" ">
+              <li v-for="(result,index) in filteredErrors" :key="`result-${index}`">{{ result.getSmartMessage() }} <br/> <i>from: {{ result.getSmartSource() }} </i><br/> </li>
+            </ul>
+          </div>
+        <p id="quickMessage" v-if="(!isLoading && filteredErrors.length == 0)">Document is valid. <br/> Good job !</p>
+        <p>kubernetes version :
+          <select v-model="versionSelected">
+            <option v-for="(option,index) in versionList" v-bind:value="option" :key="`option-${index}`">
+              {{ option }}
+            </option>
+          </select>
+        </p><br/>
         </div>
-        <p id="quickMessage" v-if="( parseErrors.length == 0)">Document is valid against schema TODO show version + give chance to change <br/> Good job !</p>
-      </div>
       </transition>
-
-      </div>
-
-     <!--{{ apiLabel }}-->
-     <!-- need hover -->
-     <!-- need click -->
-     <!-- need way to change api version -->
-
+    </div>
   </div>
 </template>
 
 <script>
 const axios = require('axios');
 const Ajv = require("ajv").default
-const _ajv = new Ajv( {removeAdditional: "all", strict: false,  allErrors: true, ajvErrors: true}) // coerceTypes: true ? Bullshit : strictRequired: true,   validateSchema: false, useDefaults: false, validateFormats: true...
+const _ajv = new Ajv( {removeAdditional: "all", strict: false,  allErrors: true, ajvErrors: true})
 const validator = require('./libs/format-validator');
 const jsonpatch = require('fast-json-patch');
 const yaml = require('js-yaml');
@@ -50,11 +45,12 @@ export default {
   name: "ValidateOnSchemaVersionItem",
   data() {
     return {
+      isLoading: true,
       ready: false,
       valid: null,
       jsonSchema: null,
-      jsonSchemaURL: "https://raw.githubusercontent.com/kubernetes/kubernetes/release-1.18/api/openapi-spec/swagger.json",
-      jsonSchemaRef: "'/definitions/io.k8s.api.core.' + doc.apiVersion + '.' + doc.kind", // https://raw.githubusercontent.com/kubevirt/kubevirt/master/api/openapi-spec/swagger.json =>  '/definitions/v1' +  '.' + doc.kind
+      versionSelected: '1.20',
+      versionList: [ '1.20', '1.19', '1.18' ],
       error: null,
       unRefedSchema: null,
       invalidYaml: null,
@@ -62,20 +58,7 @@ export default {
       parseErrors: [],
       showConfig: false,
       showInfoBox: false,
-      refsSchema: {
-        k8s_schemas: {
-          "k8s.io": {
-            "url": "https://raw.githubusercontent.com/kubernetes/kubernetes/release-1.20/api/openapi-spec/swagger.json",
-            "prefix": "/definitions/io.k8s.api.",
-            "default": "core."
-          },
-          "kubevirt.io": {
-            "url": "https://raw.githubusercontent.com/kubevirt/kubevirt/master/api/openapi-spec/swagger.json",
-            "prefix": "/definitions/",
-            "default": ""
-          }
-        }
-      },
+      lastUpdateCode: "",
       refsDetection: `{%- set is_k8s = (apiVersion | default("") |length > 0) and (kind | default("") |length > 0) %}
 {%- if is_k8s %}
 # it's a k8s object
@@ -94,10 +77,48 @@ url: {{ doc_refs.url }}
     }
   },
   computed: {
-    //TODO add computed get to remove some non sense or non understandable errors
+    filteredErrors() {
+      return ParseError.getFilteredErrors(this.parseErrors)
+    }
 
   },
   methods: {
+    doParse(source) {
+      var parsed=parseCST(source)
+      //FIXME  : real hardcase ---\n one :one\n      --- (spaces before --- breaks eveything)
+      this.parseErrors=[]
+      var allErrors=[]
+
+      for (var i=0; i < parsed.length; i++) {
+        allErrors=allErrors.concat(this.parse(parsed[i], this, i, source)) //=> should return bunch of errors
+      }
+      this.parseErrors = allErrors
+      if(this.filteredErrors.length > 0) {
+        this.showInfoBox=true
+      } else {
+        this.showInfoBox=false
+      }
+      this.$emit('parseErrors', this.parseErrors)
+    },
+    refreshParse: function(newSchema) {
+      console.log("new schema", newSchema)
+    },
+    getK8sSchema(){
+      return {
+        k8s_schemas: {
+          "k8s.io": {
+            "url": "https://raw.githubusercontent.com/kubernetes/kubernetes/release-"+ this.versionSelected + "/api/openapi-spec/swagger.json",
+            "prefix": "/definitions/io.k8s.api.",
+            "default": "core."
+          },
+          "kubevirt.io": {
+            "url": "https://raw.githubusercontent.com/kubevirt/kubevirt/master/api/openapi-spec/swagger.json",
+            "prefix": "/definitions/",
+            "default": ""
+          }
+        }
+      }
+    },
     toggleInfoBox: function() {
       this.showInfoBox = ! this.showInfoBox
     },
@@ -133,13 +154,13 @@ url: {{ doc_refs.url }}
       var oldDocAsJson=JSON.parse(JSON.stringify(docAsJson))
 
 
-      var refDetect = yaml.loadAll(nunjucks.renderString(this.refsDetection, Object.assign({}, docAsJson, this.refsSchema)))[0]
+      var refDetect = yaml.loadAll(nunjucks.renderString(this.refsDetection, Object.assign({}, docAsJson, this.getK8sSchema())))[0]
       console.log(refDetect)
       if (refDetect !== undefined && refDetect !== null ) {
         var ref = refDetect.ref //refsDetection  'schema#' + '/definitions/io.k8s.api.core.' + docAsJson.apiVersion + '.' + docAsJson.kind
         try {
           //FIXME : ref detection may change schema !
-          const valid = vm.ajv.validate({ $ref: 'schema#' +ref }, docAsJson)
+          const valid = vm.ajv.validate({ $ref: 'schema-' + this.versionSelected + '#' +ref }, docAsJson)
           if (!valid) {
             this.invalid=true
             for (var j=0; j < vm.ajv.errors.length; j++){
@@ -171,10 +192,12 @@ url: {{ doc_refs.url }}
     this.ajv.addFormat('float', { type: 'number', validate: validator.float });
     this.ajv.addFormat('double', { type: 'number', validate: validator.double });
     this.ajv.addFormat('byte', { type: 'string', validate: validator.byte });
+    this.isLoading = true
     axios
-    .get(this.jsonSchemaURL)
+    .get("https://raw.githubusercontent.com/kubernetes/kubernetes/release-"+ this.versionSelected + "/api/openapi-spec/swagger.json")
     .then(response => {
-      this.ajv.addSchema(response.data, "schema")
+      this.ajv.addSchema(response.data, "schema-"+ this.versionSelected)
+      this.isLoading = false
     })
   },
   props: {
@@ -182,26 +205,18 @@ url: {{ doc_refs.url }}
   },
   watch: {
     code: function(newVal) {
-      var parsed=parseCST(newVal)
-      //FIXME  : real hardcase ---\n one :one\n      --- (spaces before --- breaks eveything)
-      this.parseErrors=[]
-      var allErrors=[]
-
-      this.showInfoBox=true
-      this.invalid=true
-      // FIXME :           this.showInfoBox=true -         this.showInfoBox=false
-      for (var i=0; i < parsed.length; i++) {
-        allErrors=allErrors.concat(this.parse(parsed[i], this, i, newVal)) //=> should return bunch of errors
-      }
-      this.parseErrors = allErrors
-      this.$emit('parseErrors', this.parseErrors)
+      this.lastUpdateCode = newVal
+      this.doParse(newVal)
     },
-    jsonSchemaURL: function(newVal) {
+    versionSelected: function(newVal) {
+      this.isLoading = true
       axios
-        .get(newVal)
+        .get("https://raw.githubusercontent.com/kubernetes/kubernetes/release-"+ newVal + "/api/openapi-spec/swagger.json")
         .then(response => {
-          this.ajv.removeSchema("schema")
-          this.this.ajv.addSchema(response.data, "schema")
+          this.ajv.removeSchema("schema-"+newVal)
+          this.ajv.addSchema(response.data, "schema-"+newVal)
+          this.isLoading = false
+          this.doParse(this.lastUpdateCode)
         })
     }
   }
@@ -210,6 +225,18 @@ url: {{ doc_refs.url }}
 
 <style scoped>
 
+@keyframes blinker {
+  from {opacity: 0.8;}
+  to {opacity: 0.05;}
+}
+
+.sync{
+  animation-name: blinker;
+	animation-duration: 0.6s;
+	animation-iteration-count:infinite;
+	animation-timing-function:ease-in-out;
+	animation-direction: alternate;
+}
 .slide-fade-enter-active{
   animation: fadein 0.5s ease-out;
 }
@@ -268,17 +295,8 @@ i.icons .icon:first-child{
 }
 
 .bubble{
-  /* display: inline-block; */
-  /* border: 7px solid rgba(255, 0, 0, 0.849)!important; */
-  /* border-style: outset !important; */
-  /* border-radius: 50%; */
-  /* padding-left: 2px; */
-  /* font-size: 2.6em; */
   position: relative;
   z-index: 3000;
-  /* right: 90vw; */
-  /* margin-top: -10%;
-  margin-right: -90%; */
 }
 
 .myicon{
@@ -324,6 +342,14 @@ i.icons .icon:first-child{
   border-right: 10px solid rgba(0, 200, 0, 0.9);
   border-top: 15px solid rgba(0, 200, 0, 0.9);
 }
+
+.grey{
+  border-left: 5px solid rgb(88, 88, 88, 1);
+  border-bottom: 5px solid rgb(88, 88, 88, 1);
+  border-right: 10px solid rgb(88, 88, 88, 0.9);
+  border-top: 15px solid rgb(88, 88, 88, 0.9);
+}
+
 #textareaURL::-webkit-scrollbar{
   border-radius: 10px;
   box-shadow: inset 0 0 6px rgba(0,0,0,.3);
