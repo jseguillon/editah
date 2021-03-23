@@ -109,7 +109,7 @@ export default {
       if (this.currentWord !== "" && this.currentWord != undefined ) {
         this.searchMatch = this.listToSearch.filter(
           //filter on regex from all terms of splitted input
-          el => el.match(new RegExp(".*" + this.inputSplitted.join('.*') + ".*", "i"))
+          el => el.match(new RegExp('(?=.*' + this.inputSplitted.join(')(?=.*') + ').+', "i"))
         );
       }
       if (
