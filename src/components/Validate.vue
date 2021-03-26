@@ -252,7 +252,7 @@ url: {{ doc_refs.url }}
 }
 
 i.icons .icon:first-child{
-  margin: 0 !important;
+  margin: 0px !important;
 }
 
 @keyframes fadein {

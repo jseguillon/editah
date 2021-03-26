@@ -151,9 +151,9 @@ export default {
   overflow: auto;
   min-width: 250px;
   max-height: 500px;
-  margin: 0;
+  margin: 0px;
   margin-top: 30px;
-  padding: 0;
+  padding: 0px;
   border: 1px solid #eee;
   list-style: none;
   border-radius: 4px;
