@@ -26,92 +26,88 @@ export default class ParseError {
     for (var i =0; i < parsedErrors.length; i++){
       var currErr = parsedErrors[i]
       //TODO : case when a structure of match and profit to test OK or not for any missing or "unknown" definition
-      if (currErr.type === "schema" ) {
-        if (currErr.message.schemaPath === "#/definitions/io.k8s.apimachinery.pkg.util.intstr.IntOrString/type"){
-          console.log("time to test #/definitions/io.k8s.apimachinery.pkg.util.intstr.IntOrString/type")
-          //filteredErrors.push(currErr)
+      try {
+        if (currErr.type === "schema" ) {
+          if (currErr.message.schemaPath === "#/definitions/io.k8s.apimachinery.pkg.util.intstr.IntOrString/type"){
+            console.log("time to test #/definitions/io.k8s.apimachinery.pkg.util.intstr.IntOrString/type")
+            //filteredErrors.push(currErr)
+          }
+          else if (currErr.message.schemaPath === "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time/type") {
+            //test if  ISO 8601 compliant and only Warn if not ?
+            console.log("time to test #/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time/type")
+            //filteredErrors.push(currErr)
+          } else {
+            //TODO : may be able to find defintion of schema path and print doc !
+            filteredErrors.push(currErr)
+          }
         }
-        else if (currErr.message.schemaPath === "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time/type") {
-          //test if  ISO 8601 compliant and only Warn if not ?
-          console.log("time to test #/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time/type")
-          //filteredErrors.push(currErr)
-        } else {
-          //TODO : may be able to find defintion of schema path and print doc !
+        else if (currErr.type === "remove" ) {
+          //TODO : set a hover for base64 decode proposal for data secrets
+          //TODO : should not ignore but test resources named cpu and memory
+          var matches = [...currErr.message.dataPath.matchAll(/\/data\/.*|\/spec\/selector.*|.*\/spec\/clusterIPs.*|.*\/metadata\/labels.*|.*\/metadata\/annotations.*|.*\/spec\/nodeSelector.*|.*\/resources\/limits.*|.*\/resources\/requests.*/g)]
+          if (matches.length == 0){
+            filteredErrors.push(currErr)
+          }
+        }
+        else {
           filteredErrors.push(currErr)
         }
       }
-      else if (currErr.type === "remove" ) {
-        //TODO : set a hover for base64 decode proposal for data secrets
-        //TODO : should not ignore but test resources named cpu and memory
-        var matches = [...currErr.message.dataPath.matchAll(/\/data\/.*|\/spec\/selector.*|.*\/spec\/clusterIPs.*|.*\/metadata\/labels.*|.*\/metadata\/annotations.*|.*\/spec\/nodeSelector.*|.*\/resources\/limits.*|.*\/resources\/requests.*/g)]
-        if (matches.length == 0){
-          filteredErrors.push(currErr)
-        }
-      }
-      else {
-        filteredErrors.push(currErr)
-      }
+      catch (e) { console.error("could not deal with parse error", parsedErrors[i], e) }
     }
 
     return filteredErrors
     //Enumeration members //Error  Hint Info  Warning <= Warn if ok on N but errors on N-1 or N-2 ? (test N-1 and N-2 only if N is ok)
   }
 
+  getSmartMessage(){
+    if (this.type === "yaml" ) {
+      return this.message.message
+    } else if (this.type === "schema" ) {
+      return this.message.dataPath + " " + this.message.message
+    } else if (this.type === "remove" ) {
+      return this.message.dataPath + " " + "unknown field must be removed"
+    }
+  }
+
+  getSmartSource(){
+    if (this.type === "yaml" ) {
+      return this.type
+    } else if (this.type === "schema" ) {
+      return this.type + " " + this.message.schemaPath
+    } else if (this.type === "remove" ) {
+      return "schema"
+    }
+  }
+
   getMarker()
   {
-    try {
-      var message = ""
-      var source = ""
-      if (this.type === "yaml" ) {
-        message = this.message.message
-        source  = this.type
-      } else if (this.type === "schema" ) {
-        message = this.message.dataPath + " " + this.message.message
-        source  = this.type + " " + this.message.schemaPath
-      } else if (this.type === "remove" ) {
-        message =  this.message.dataPath + " " + "unknown field must be removed"
-        source  = "schema"
-      }
+    var message = this.getSmartMessage()
+    var source = this.getSmartSource()
 
-      if (this.position !== undefined) {
-        return {
-          //code: { target: "internal/1", value: "otot" },
-          startLineNumber: this.position.absoluteLine,
-          endLineNumber: this.position.absoluteLine,
-          startColumn: this.position.startColumn,
-          endColumn: this.position.endColumn,
-          message: message,
-          severity: monaco.MarkerSeverity.Error,
-          source: source
-        }
-      }
-      else {
-        return {
-          startLineNumber: 0,
-          endLineNumber: 0,
-          startColumn: 0,
-          endColumn: 0,
-          message: message,
-          severity: monaco.MarkerSeverity.Error,
-          source: source
-        }
-      }
-    }
-    catch(e) {
-      console.log("could not get position", e, this.message)
-
+    if (this.position !== undefined) {
       return {
         //code: { target: "internal/1", value: "otot" },
+        startLineNumber: this.position.absoluteLine,
+        endLineNumber: this.position.absoluteLine,
+        startColumn: this.position.startColumn,
+        endColumn: this.position.endColumn,
+        message: message,
+        severity: monaco.MarkerSeverity.Error,
+        source: source
+      }
+    }
+    else {
+      return {
         startLineNumber: 0,
         endLineNumber: 0,
         startColumn: 0,
         endColumn: 0,
-        message: this.message.message,
+        message: message,
         severity: monaco.MarkerSeverity.Error,
-        source: this.type
+        source: source
       }
     }
-
   }
 
   convertJsonPath(jsonPath){
