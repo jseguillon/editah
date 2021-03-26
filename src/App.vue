@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <div id="nav">
-      <router-link to="/">Cloud-YAML</router-link> |
+      <router-link to="/Cloud_YAML">Cloud_YAML</router-link> |
       <router-link to="/about">About</router-link>
       <a style="float: right;display:block;cursor: pointer;" @click="toggleShareNetwork()" >
         <i class="ui right  icon share">
