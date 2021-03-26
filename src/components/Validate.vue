@@ -95,8 +95,10 @@ url: {{ doc_refs.url }}
       this.parseErrors = allErrors
       if(this.filteredErrors.length > 0) {
         this.showInfoBox=true
+        document.getElementById("favicon").href=document.getElementById("favicon").getAttribute('data-baseUrl') + "red.ico"
       } else {
         this.showInfoBox=false
+        document.getElementById("favicon").href=document.getElementById("favicon").getAttribute('data-baseUrl') + "favicon.ico"
       }
       this.$emit('parseErrors', this.parseErrors)
     },
@@ -169,7 +171,7 @@ url: {{ doc_refs.url }}
           }
         }
         catch (e) {
-          console.error("error while validating agains jsonc schema:", e)
+          console.error("error while validating agains json schema:", e)
         }
         //FIXME : filter some diffs to be considered as normal (metadata)
         var jsonDiffs = jsonpatch.compare(oldDocAsJson, JSON.parse(JSON.stringify(docAsJson)), true)
