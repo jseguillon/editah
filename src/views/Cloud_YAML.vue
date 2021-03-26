@@ -128,6 +128,8 @@ export default {
         //alert(event)
         this.$refs.autocomplete.focusout()
         this.$refs.editor.getEditor().setValue(this.replaceTokensInString(this.filterName(event)[0].content))
+        this.editor.revealPosition({ lineNumber: 1, column: 1 });
+        this.editor.setPosition({ lineNumber: 2, column: 1 })
         this.$refs.editor.focus()
       }
     },
@@ -155,6 +157,9 @@ export default {
   watch: {
     code: function() {
       this.setDebouncedCode(this)
+          //       if (this.listToSearch[i].match(new RegExp('(?=.*' + this.inputSplitted.join(')(?=.*') + ').+', "gi"))) {
+          //   this.searchMatch.push(this.listToSearch[i])
+          // }
     }
   },
   data() {

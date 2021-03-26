@@ -1,8 +1,7 @@
 // Most of credits goes to :  https://codepen.io/ph1p/pen/GEJYBZ
 <template>
   <div class="autocomplete ui icon input">
-    <input :id="id" ref="autoinput" class="autocomplete-input" :placeholder="placeholder" @focusout="focusout" @focus="focus" @keydown.13="chooseItem" @keydown.tab="chooseItem" @keydown.40="moveDown" @keydown.38="moveUp" v-model="inputValue" type="text">
-    <i class="random link icon" @click="randomItem()"></i>
+    <input :id="id" ref="autoinput" class="autocomplete-input" :placeholder="placeholder" @focusout="focusout" @focus="focus" @keydown.13="chooseItem" @keydown.tab="chooseItem" @keydown.40="moveDown" @keydown.38="moveUp" v-model="inputValue" type="text"/>
 
 
     <ul :class="{
@@ -13,6 +12,7 @@
 
       </li>
     </ul>
+    <i class="random link icon" @click="randomItem()"></i>
   </div>
 </template>
 
@@ -47,14 +47,16 @@ export default {
   watch: {
     inputValue() {
       this.focus();
-      console.log(this.inputSplitted)
       this.selectedIndex = 0;
       this.wordIndex = this.inputSplitted.length - 1;
     }
   },
   methods: {
     randomItem() {
-      window.alert('todo')
+      var rand = Math.floor(Math.random() * this.listToSearch.length);
+
+      this.inputValue = this.listToSearch[rand]
+      this.$emit('selected', this.inputValue)
     },
     focusInput() {
       this.$refs.autoinput.focus();
@@ -148,7 +150,7 @@ export default {
   z-index: 2;
   overflow: auto;
   min-width: 250px;
-  max-height: 150px;
+  max-height: 500px;
   margin: 0;
   margin-top: 30px;
   padding: 0;

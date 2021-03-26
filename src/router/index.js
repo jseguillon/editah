@@ -1,20 +1,15 @@
 import Vue from "vue";
 import VueRouter from "vue-router";
-import Home from "../views/Home.vue";
-import Template from "../views/Template.vue";
+import Cloud_YAML from "../views/Cloud_YAML.vue";
 
 Vue.use(VueRouter);
 
 const routes = [
+  { path: '/', redirect: '/Cloud_YAML' },
   {
-    path: "/",
-    name: "Home",
-    component: Home
-  },
-  {
-    path: "/template",
-    name: "Template",
-    component: Template
+    path: "/Cloud_YAML",
+    name: "Cloud_YAML",
+    component: Cloud_YAML
   },
   {
     path: "/about",
