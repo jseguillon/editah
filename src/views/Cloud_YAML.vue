@@ -43,7 +43,7 @@
           Copy Linux
         </button>
 
-        <button class="ui blue toggle button big icon" data-tooltip="Copy to clipboard with Window End Of Line (='CRLF' ='\r\n')" v-bind:class="{ active: isCopyWindowsActive }">
+        <button class="ui blue toggle button big icon" data-tooltip="Copy to clipboard with Window End Of Line (='CRLF' ='\r\n')" v-bind:class="{ active: isCopyWindowsActive }" @click="windowsClipboard">
           <i class="check icon" v-if="isCopyWindowsActive"></i>
           <i class="windows icon" v-if="! isCopyWindowsActive"></i>
           Copy windows
@@ -88,6 +88,7 @@ export default {
 
   },
   methods: {
+    //FIXME : tell list of items is not yet supported
     setDebouncedCode: debounce( (vm)  => {
       //enforce ("---") on first line
       if (! vm.code.startsWith("---")){
@@ -107,6 +108,20 @@ export default {
       this.isCopyLinuxActive = true
       setTimeout(() => this.isCopyLinuxActive = false, 1500)
     },
+    windowsClipboard: function () {
+      //beware : CRLF inivsible in string :)
+      var code = this.code.split( "\n" ).join( `
+` )
+      this.$copyText(code).then(function () {
+      }, function () {
+        alert('Can not copy')
+      })
+
+      this.isCopyWindowsActive = true
+      setTimeout(() => this.isCopyWindowsActive = false, 1500)
+    },
+    //FIXME : need Windows Copy
+    //TODO : a "download" + a "download archive" would be cool
     templateKeys() {
       return this.templates.map(x => x.name)
     },
