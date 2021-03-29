@@ -198,6 +198,7 @@ url: {{ doc_refs.url }}
     axios
     .get("https://raw.githubusercontent.com/kubernetes/kubernetes/release-"+ this.versionSelected + "/api/openapi-spec/swagger.json")
     .then(response => {
+      this.ajv.removeSchema("schema-"+ this.versionSelected)
       this.ajv.addSchema(response.data, "schema-"+ this.versionSelected)
       this.isLoading = false
     })

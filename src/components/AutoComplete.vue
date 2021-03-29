@@ -52,12 +52,25 @@ export default {
     }
   },
   methods: {
-    randomItem() {
-      var rand = Math.floor(Math.random() * this.listToSearch.length);
-
-      this.inputValue = this.listToSearch[rand]
-      this.$emit('selected', this.inputValue)
+    debouncedRandomItem() {
+      this.randomItem(this)
     },
+    //This is hack to avoid blinking effect on input onchange event (we are not typing text !)
+    randomItem: debounce( (vm) => {
+      //block autocompletion render
+      vm.doingRandom = true
+
+      var rand = Math.floor(Math.random() * vm.listToSearch.length);
+
+      //fast on event
+      setTimeout(() => {
+        vm.inputValue = vm.listToSearch[rand]
+        vm.$emit('selected', vm.inputValue)
+      }, 1)
+
+      //slow on releasing render lock
+      setTimeout(() => vm.doingRandom = false, 150)
+    }, 150),
     focusInput() {
       this.$refs.autoinput.focus();
     },
