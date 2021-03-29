@@ -7,16 +7,26 @@
     <ul :class="{
       'autocomplete-list': true,
       [id+'-list']: true
-    }" v-if="searchMatch.length > 0">
+    }" v-if="searchMatch.length > 0 && ! doingRandom">
       <li :class="{active: selectedIndex === index}" v-for="(result, index) in searchMatch" :key="`result-${index}`" @click="selectItem(index), chooseItem()" v-html="highlightWord(result)">
 
       </li>
     </ul>
-    <i class="random link icon" @click="randomItem()"></i>
+    <i class="random link icon" @click="debouncedRandomItem()"></i>
   </div>
 </template>
 
 <script>
+const debounce = (callback, wait) => {
+  let timeoutId = null;
+  return (...args) => {
+    window.clearTimeout(timeoutId);
+    timeoutId = window.setTimeout(() => {
+      callback.apply(null, args);
+    }, wait);
+  };
+}
+
 export default {
   name: 'AutoComplete',
   props: ["items", "placeholder", "label", "textarea", "rows", "cols"],
@@ -27,7 +37,8 @@ export default {
       searchMatch: [],
       selectedIndex: 0,
       clickedChooseItem: false,
-      wordIndex: 0
+      wordIndex: 0,
+      doingRandom: false
     };
   },
   mounted() {

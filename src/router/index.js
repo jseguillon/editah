@@ -10,15 +10,6 @@ const routes = [
     path: "/Cloud_YAML",
     name: "Cloud_YAML",
     component: Cloud_YAML
-  },
-  {
-    path: "/about",
-    name: "About",
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () =>
-      import(/* webpackChunkName: "about" */ "../views/About.vue")
   }
 ];
 
