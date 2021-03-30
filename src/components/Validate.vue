@@ -11,7 +11,7 @@
 
           <div id="quickMessage" v-if="filteredErrors.length > 0">errors:
             <ul id="errors" class="overflow" style=" ">
-              <li v-for="(result,index) in filteredErrors" :key="`result-${index}`">{{ result.getSmartMessage() }} <br/> <i>from: {{ result.getSmartSource() }} </i><br/> </li>
+              <li v-for="(result,index) in filteredErrors" :key="`result-${index}`">{{ result.getSmartMessage() }} <br/> <i> (from: {{ result.getSmartSource() }})</i><br/> </li>
             </ul>
           </div>
         <p id="quickMessage" v-if="(!isLoading && filteredErrors.length == 0)">Document is valid. <br/> Good job !</p>
@@ -173,7 +173,6 @@ url: {{ doc_refs.url }}
         catch (e) {
           console.error("error while validating agains json schema:", e)
         }
-        //FIXME : filter some diffs to be considered as normal (metadata)
         var jsonDiffs = jsonpatch.compare(oldDocAsJson, JSON.parse(JSON.stringify(docAsJson)), true)
         // Iterate over diffs and solve line position
         for (var i=0; i < jsonDiffs.length; i++){

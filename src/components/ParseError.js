@@ -73,10 +73,10 @@ export default class ParseError {
   getSmartSource(){
     if (this.type === "yaml" ) {
       return this.type
-    } else if (this.type === "schema" ) {
+    } else if (this.type === "api" ) {
       return this.type + " " + this.message.schemaPath
     } else if (this.type === "remove" ) {
-      return "schema"
+      return "api"
     }
   }
 

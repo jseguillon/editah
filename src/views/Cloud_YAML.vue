@@ -37,16 +37,15 @@
     <br/>
 
       <div class="ui">
-        <button class="ui black toggle button big icon" data-tooltip="Copy to clipboard with Linux End Of Line (='LF' ='\n')" v-bind:class="{ active: isCopyLinuxActive }" @click="linuxClipboard">
+        <button class="ui black toggle button big icon" v-bind:class="{ active: isCopyLinuxActive }" @click="linuxClipboard">
           <i class="check icon" v-if="isCopyLinuxActive"></i>
-          <i class="linux icon" v-if="! isCopyLinuxActive"></i>
-          Copy Linux
+          Copy clipboad
         </button>
 
-        <button class="ui blue toggle button big icon" data-tooltip="Copy to clipboard with Window End Of Line (='CRLF' ='\r\n')" v-bind:class="{ active: isCopyWindowsActive }" @click="windowsClipboard">
-          <i class="check icon" v-if="isCopyWindowsActive"></i>
-          <i class="windows icon" v-if="! isCopyWindowsActive"></i>
-          Copy windows
+        <button class="ui blue toggle button big icon" data-tooltip="`cat <<EOF | kubectl apply -f - ... EOF`" v-bind:class="{ active: isHeredocActive }" @click="heredocClipboard">
+          <i class="check icon" v-if="isHeredocActive"></i>
+          <i class="linux icon" v-if="! isHeredocActive"></i>
+          kubectl apply clipboard
         </button>
       </div>
   </div>
@@ -108,19 +107,16 @@ export default {
       this.isCopyLinuxActive = true
       setTimeout(() => this.isCopyLinuxActive = false, 1500)
     },
-    windowsClipboard: function () {
-      //beware : CRLF inivsible in string :)
-      var code = this.code.split( "\n" ).join( `
-` )
+    heredocClipboard: function () {
+      var code = "cat <<EOF | kubectl apply -f - \n" + this.code + "\nEOF"
       this.$copyText(code).then(function () {
       }, function () {
         alert('Can not copy')
       })
 
-      this.isCopyWindowsActive = true
-      setTimeout(() => this.isCopyWindowsActive = false, 1500)
+      this.isHeredocActive = true
+      setTimeout(() => this.isHeredocActive = false, 1500)
     },
-    //FIXME : need Windows Copy
     //TODO : a "download" + a "download archive" would be cool
     templateKeys() {
       return this.templates.map(x => x.name)
@@ -181,10 +177,10 @@ export default {
     // Create an array with for input auto select via concact plus name extraction
     var templates = v1.concat(appsV1, testsV1)
     return {
-      code: "---\nwelcome: |\n  Wecome\n  Paste your yaml or select one above",
+      code: "---\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: welcome\n  namespace: editah-io\ndata:\n  message: |\n    Welcome to editah.io Kube_YAML editor\n    No backend for total privacy\n    Subscribe to https://twitter.com/IoEditah on Twitter to stay tuned\n  features: \n    - As you type validation against API schema\n    - No backend to keep your data private\n    - Fast search for examples, discover with random\n    - Multiple YAML documents support\n  hints: \n    - Use F8 key to navigate from one error to another\n    - Shift+F8 to navigate backward \n    - Use F1 key to learn more about Monaco Editor feaures\n  limitations: \n    - No CRD support\n---\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: error-map\n  namespace: editah-io\n# Uncomment to see some error examples\n# wrong: wrong\n# immutable: yes\n",
       debouncedCode: "",
       isCopyLinuxActive: false,
-      isCopyWindowsActive: false,
+      isHeredocActive: false,
       monOptions: { tabSize: 2 },
       templates: templates,
       yamlCodeAsJson: {},
