@@ -19,12 +19,12 @@
                 <div class="two column row rowCompact" style="">
           <div class="column">
             <div class="name ui input small">
-              <input ref="name" placeholder="Name (default: myname)" class="name ui input" @change="replaceTokens" v-model="name" type="text">
+              <input ref="name" placeholder="Name (default: myname)" class="name ui input"  v-model="name" type="text">
             </div>
           </div>
           <div class="column">
                 <div class="namespace ui input small">
-                  <input ref="namespace" placeholder="Namespace (default: default)" class="ui input" @change="replaceTokens" v-model="namespace" type="text">
+                  <input ref="namespace" placeholder="Namespace (default: default)" class="ui input" v-model="namespace" type="text">
                 </div>
           </div>
         </div>
@@ -87,7 +87,7 @@ export default {
 
   },
   methods: {
-    //FIXME : tell list of items is not yet supported
+    //TODO : tell list of items is not yet supported
     setDebouncedCode: debounce( (vm)  => {
       //enforce ("---") on first line
       if (! vm.code.startsWith("---")){
@@ -124,28 +124,15 @@ export default {
     filterName(name) {
       return this.templates.filter(x => x.name.indexOf(name) !== -1)
     },
-    //FIXME : check event => if previous val != '' => use previous val when searching name
-    replaceTokensInString(code) {
-      if ( this.name != '' ) {
-        code = code.replace('name: myname', 'name: ' + this.name )
-      }
-      if ( this.namespace != '' ) {
-        code = code.replace('namespace: default', 'namespace: ' + this.namespace )
-      }
-      return code
-    },
     update: function (event) {
       if (event) {
         //alert(event)
         this.$refs.autocomplete.focusout()
-        this.$refs.editor.getEditor().setValue(this.replaceTokensInString(this.filterName(event)[0].content))
+        this.$refs.editor.getEditor().setValue(this.filterName(event)[0].content)
         this.editor.revealPosition({ lineNumber: 1, column: 1 });
         this.editor.setPosition({ lineNumber: 2, column: 1 })
         this.$refs.editor.focus()
       }
-    },
-    replaceTokens: function (){
-      this.$refs.editor.getEditor().setValue(this.replaceTokensInString(this.code))
     },
     editorDidMount(editor) {
       // Listen to `scroll` event
@@ -168,10 +155,52 @@ export default {
   watch: {
     code: function() {
       this.setDebouncedCode(this)
-          //       if (this.listToSearch[i].match(new RegExp('(?=.*' + this.inputSplitted.join(')(?=.*') + ').+', "gi"))) {
-          //   this.searchMatch.push(this.listToSearch[i])
-          // }
-    }
+    },
+    //TODO : should debounce : had to tweak regex to ensure race condition woul not break and get "--" effect
+    name(neww, old) {
+      var codeSplitted = this.code.split("---")
+      neww = neww.trim()
+      for (var i = 0; i < codeSplitted.length; i++){
+
+        if ( old != '' ) {
+          //Full term search
+          const regex = new RegExp("(^metadata\\s*.*)([\\S|\\s]*)(\\s*name *:)(\\s*" + old + "\\s*$)", "gm");
+          codeSplitted[i] = codeSplitted[i].replace(regex, "$1$2$3 " + neww)
+
+          //prefix -
+          const regex2 = new RegExp("(^metadata\\s*.*)([\\S|\\s]*)(\\s*name *: *)( *" + old + ")(-[\\w]+[\\w|-]*)", "gm");
+          codeSplitted[i] = codeSplitted[i].replace(regex2, "$1$2$3" + neww + "$5")
+        }
+        else {
+          //Full term search
+          const regex = new RegExp("(^metadata\\s*.*)([\\S|\\s]*)( *name *:)( *\\s)(\\s+)", "gm")
+          codeSplitted[i] = codeSplitted[i].replace(regex, "$1$2$3 " + neww + "$4$5")
+
+          //prefix - search
+          const regex2 = new RegExp("(^metadata\\s*.*)([\\S|\\s]*)(\\s*name *:)(\\s*)(-[\\w|-]*)", "gm");
+          codeSplitted[i] = codeSplitted[i].replace(regex2, "$1$2$3 " + neww + "$5")
+        }
+      }
+      this.code=codeSplitted.join('---')
+    },
+    namespace(neww, old) {
+      var codeSplitted = this.code.split("---")
+      neww = neww.trim()
+      for (var i = 0; i < codeSplitted.length; i++){
+
+        if ( old != '' ) {
+          //Full term search
+          const regex = new RegExp("(^metadata\\s*.*)([\\S|\\s]*)(\\s*namespace *:)(\\s*" + old + "\\s*$)", "gm");
+          codeSplitted[i] = codeSplitted[i].replace(regex, "$1$2$3 " + neww)
+        }
+        else {
+          //Full term search
+          const regex = new RegExp("(^metadata\\s*.*)([\\S|\\s]*)( *namespace *:)( *\\s)(\\s+)", "gm")
+          codeSplitted[i] = codeSplitted[i].replace(regex, "$1$2$3 " + neww + "$4$5")
+        }
+      }
+      this.code=codeSplitted.join('---')
+    },
   },
   data() {
     // Create an array with for input auto select via concact plus name extraction
