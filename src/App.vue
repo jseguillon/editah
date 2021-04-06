@@ -12,7 +12,9 @@
       </a>
     </div>
     <router-view />
-    <div class="ui dimmer" style="background-color: rgba(0, 0, 0, 0.95);" v-bind:class="{ 'active': isDonateActive }" @click="toggleDonate()">
+    <!-- FIXME : some media queries for correct btc render on mobile : input + copy button, no QR -->
+    <!-- FIXME : debounce toggles -->
+    <div class="ui dimmer" style="z-index: 200000; background-color: rgba(0, 0, 0, 0.95);" v-bind:class="{ 'active': isDonateActive }" @click="toggleDonate()">
       <div class="content">
         <img src="@/assets/raining-money.gif" />
         <h2 ref="btcHeader" class="ui header" style="color: white;cursor: pointer;" data-tooltip="Click to copy Btc address in clipboard or scan QR code" @click.prevent.stop="copyClipboardBtcAdress()">
@@ -37,7 +39,7 @@
           </h2>
       </div>
     </div>
-    <div class="ui dimmer" style="background-color: rgba(0, 0, 0, 0.95);" v-bind:class="{ 'active': isShareNetworkActive }" @click="toggleShareNetwork()">
+    <div class="ui dimmer" style="z-index: 200000; background-color: rgba(0, 0, 0, 0.95);" v-bind:class="{ 'active': isShareNetworkActive }" @click="toggleShareNetwork()">
       <div class="content">
         <h1 class="ui inverted icon header">
           Spread the world !
@@ -48,7 +50,8 @@
             network="twitter"
             url="https://editah.io"
             title="Editah.io launches *Cloud_YAML*: online editor and validator for Kubernetes YAMLs. It keeps your data private, because it uses no backend !"
-            hashtags="editah, kubernetes, yaml, online, devops"
+            hashtags="editah,kubernetes,yaml,online,devops"
+            twitter-user="IoEditah"
           >
           <h2 class="ui header" style="color: white;">
             <i class="large inverted icons" style="color: white; ">
