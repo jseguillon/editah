@@ -19,12 +19,12 @@
                 <div class="two column row rowCompact" style="">
           <div class="column">
             <div class="name ui input small">
-              <input ref="name" placeholder="Name (default: myname)" class="name ui input"  v-model="name" type="text">
+              <input ref="name" placeholder="Name" class="name ui input"  v-model="name" type="text">
             </div>
           </div>
           <div class="column">
                 <div class="namespace ui input small">
-                  <input ref="namespace" placeholder="Namespace (default: default)" class="ui input" v-model="namespace" type="text">
+                  <input ref="namespace" placeholder="Namespace" class="ui input" v-model="namespace" type="text">
                 </div>
           </div>
         </div>
@@ -156,64 +156,57 @@ export default {
     code: function() {
       this.setDebouncedCode(this)
     },
-    //TODO : should debounce : had to tweak regex to ensure race condition woul not break and get "--" effect
     name(neww, old) {
-      var codeSplitted = this.code.split("---")
-      neww = neww.trim()
-      for (var i = 0; i < codeSplitted.length; i++){
-
-        if ( old != '' ) {
-          //Full term search
-          const regex = new RegExp("(^metadata\\s*.*)([\\S|\\s]*)(\\s*name *:)(\\s*" + old + "\\s*$)", "gm");
-          codeSplitted[i] = codeSplitted[i].replace(regex, "$1$2$3 " + neww)
-
-          //prefix -
-          const regex2 = new RegExp("(^metadata\\s*.*)([\\S|\\s]*)(\\s*name *: *)( *" + old + ")(-[\\w]+[\\w|-]*)", "gm");
-          codeSplitted[i] = codeSplitted[i].replace(regex2, "$1$2$3" + neww + "$5")
-        }
-        else {
-          //Full term search
-          const regex = new RegExp("(^metadata\\s*.*)([\\S|\\s]*)( *name *:)( *\\s)(\\s+)", "gm")
-          codeSplitted[i] = codeSplitted[i].replace(regex, "$1$2$3 " + neww + "$4$5")
-
-          //prefix - search
-          const regex2 = new RegExp("(^metadata\\s*.*)([\\S|\\s]*)(\\s*name *:)(\\s*)(-[\\w|-]*)", "gm");
-          codeSplitted[i] = codeSplitted[i].replace(regex2, "$1$2$3 " + neww + "$5")
-        }
+      if (neww.length !== 0 && Math.abs(old.length - neww.length) > 1 ){
+        //assume copy-paste for syncing => do nothing
+        return
       }
-      this.code=codeSplitted.join('---')
+
+      neww = neww.trim()
+
+      // TODO : remove some chars like " , ' ; [] {} * (maybe regex) also remove accented chars
+
+      // https://regex101.com/r/EjT3KG/3
+      const regex = new RegExp("(^)( *)(metadata *:\\n)((^\\2 {2,4}.*\\n)*)(^\\2 {2,4})(name *:)( *)("+ old+")([-|\\w]*)", "gm");
+      this.code = this.code.replace(regex, "$1$2$3$4$6$7 " + neww +"$10")
     },
     namespace(neww, old) {
-      var codeSplitted = this.code.split("---")
       neww = neww.trim()
-      for (var i = 0; i < codeSplitted.length; i++){
 
-        if ( old != '' ) {
-          //Full term search
-          const regex = new RegExp("(^metadata\\s*.*)([\\S|\\s]*)(\\s*namespace *:)(\\s*" + old + "\\s*$)", "gm");
-          codeSplitted[i] = codeSplitted[i].replace(regex, "$1$2$3 " + neww)
-        }
-        else {
-          //Full term search
-          const regex = new RegExp("(^metadata\\s*.*)([\\S|\\s]*)( *namespace *:)( *\\s)(\\s+)", "gm")
-          codeSplitted[i] = codeSplitted[i].replace(regex, "$1$2$3 " + neww + "$4$5")
-        }
+      if (neww.length !== 0 && Math.abs(old.length - neww.length) > 1){
+        //assume copy-paste for syncing => do nothing
+        return
       }
-      this.code=codeSplitted.join('---')
+
+      //test if new is empty => if so remove field ( Ref : https://regex101.com/r/1VoyVm/1 )
+      if (neww.length == 0){
+        const regex = new RegExp("(^)( *)(metadata *:\\n)((^\\2 {2,4}.*\\n)*)(^\\2 {2,4}namespace *:.*\\n)", "gm")
+        this.code = this.code.replace(regex, "$1$2$3$4" )
+      }
+      //if old was empty : add again field (https://regex101.com/r/bYw1GT/1)
+      else if (old.length == 0) {
+        const regex = new RegExp("(^)( *)(metadata *:\\n)((^\\2 {2,4}.*\\n)*)(^\\2 {2,4})(name *:.*\\n)", "gm")
+        this.code = this.code.replace(regex, "$1$2$3$4$6$7$6namespace: " + neww +"\n" )
+      }
+      // https://regex101.com/r/2Hpt9K/3 : replace existing
+      else {
+        const regex = new RegExp("(^)( *)(metadata *:\\n)((^\\2 {2,4}.*\\n)*)(^\\2 {2,4})(namespace *:)(.*\\n)", "gm");
+        this.code = this.code.replace(regex, "$1$2$3$4$6$7 " + neww + "\n")
+      }
     },
   },
   data() {
     // Create an array with for input auto select via concact plus name extraction
     var templates = v1.concat(appsV1, testsV1)
     return {
-      code: "---\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: welcome\n  namespace: editah-io\ndata:\n  message: |\n    Welcome to editah.io Kube_YAML editor\n    No backend for total privacy\n    Subscribe to https://twitter.com/IoEditah on Twitter to stay tuned\n  features: |\n    * As you type validation against API schema\n    * No backend to keep your data private\n    * Fast search for examples, discover with random\n    * Multiple YAML documents support\n  hints: |\n    * Use F8 key to navigate from one error to another\n    * Shift+F8 to navigate backward \n    * Use F1 key to learn more about Monaco Editor feaures\n  limitations: |\n    * No CRD support\n---\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: error-map\n  namespace: editah-io\n# Uncomment to see some error examples\n# wrong: wrong\n# immutable: yes\n",
+      code: "---\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: myapp-welcome\ndata:\n  message: |\n    Welcome to editah.io Kube_YAML editor\n    No backend for total privacy\n    Subscribe to https://twitter.com/IoEditah on Twitter to stay tuned\n  features: |\n    * As you type validation against API schema\n    * No backend to keep your data private\n    * Fast search for examples, discover with random\n    * Multiple YAML documents support\n  hints: |\n    * Use F8 key to navigate from one error to another\n    * Shift+F8 to navigate backward \n    * Use F1 key to learn more about Monaco Editor feaures\n  incoming: |\n    * CRD support\n    * Internal Kubernetes validator mockup \n---\napiVersion: v1\nkind: ConfigMap\n# Uncomment (Ctrl + K, Ctrl + U) to see some error examples\n# wrong: wrong\n# immutable: yes\nmetadata:\n  name: myapp-error-samples\n",
       debouncedCode: "",
       isCopyLinuxActive: false,
       isHeredocActive: false,
       monOptions: { tabSize: 2 },
       templates: templates,
       yamlCodeAsJson: {},
-      name: '',
+      name: 'myapp',
       namespace: '',
       decorations: Array,
       editor: Object,

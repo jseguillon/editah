@@ -152,6 +152,7 @@ export default {
 <style>
 .autocomplete {
   position: relative;
+  text-align: left;
 }
 .autocomplete label {
   display: block;
