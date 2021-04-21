@@ -60,6 +60,8 @@ import v1 from '@/assets/jsons/templates/v1.json'
 import appsV1 from '@/assets/jsons/templates/apps.v1.json'
 import Validate from '../components/Validate.vue'
 import ParseError from '../components/ParseError.js'
+import CstUtils from '../components/CstUtils.js'
+import parseCST from 'yaml/parse-cst'
 
 const debounce = (callback, wait) => {
   let timeoutId = null;
@@ -132,6 +134,7 @@ export default {
         this.editor.revealPosition({ lineNumber: 1, column: 1 });
         this.editor.setPosition({ lineNumber: 2, column: 1 })
         this.$refs.editor.focus()
+        this.name="myapp"
       }
     },
     editorDidMount(editor) {

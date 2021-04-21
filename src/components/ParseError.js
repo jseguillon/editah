@@ -45,7 +45,7 @@ export default class ParseError {
         else if (currErr.type === "remove" ) {
           //TODO : set a hover for base64 decode proposal for data secrets
           //FIXME : should not ignore all but test resources named cpu and memory
-          var matches = [...currErr.message.dataPath.matchAll(/\/data\/.*|\/spec\/selector.*|.*\/spec\/clusterIPs.*|.*\/metadata\/labels.*|.*\/metadata\/annotations.*|.*\/spec\/nodeSelector.*|.*\/resources\/limits.*|.*\/resources\/requests.*/g)]
+          var matches = [...currErr.message.dataPath.matchAll(/\/data\/.*|\/spec\/selector.*|.*\/spec\/clusterIPs.*|.*\/metadata\/labels.*|.*\/metadata\/annotations.*|.*\/spec\/nodeSelector.*|.*\/resources\/limits.*|.*\/resources\/requests.*|.*\/spec\/limits\/.*/g)]
           if (matches.length == 0){
             filteredErrors.push(currErr)
           }
