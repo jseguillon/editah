@@ -157,41 +157,74 @@ export default {
       this.setDebouncedCode(this)
     },
     name(neww, old) {
-      if (neww.length !== 0 && Math.abs(old.length - neww.length) > 1 ){
-        //assume copy-paste for syncing => do nothing
-        return
+      neww = neww.trim()
+      var parsed=parseCST(this.code)
+
+      for (var i=0; i < parsed.length; i++) {
+        try {
+          //TODO : if new is empty : empty whole name and keep after (- ?
+          const [element, idFromParent ] = CstUtils.findNode(CstUtils.convertJsonPath("/metadata/name"), parsed[i])
+          console.log(element.context.parent.items[idFromParent+1])//.parent[idFromParent+1])
+
+          const regex = new RegExp("^(:?)( *)(" + old + "[ ]*)([-|\\w]*)$", "gm");
+          console.log("^(:?)( *)(" + old + "[ ]*)([-|\\w]*)$")
+          element.context.parent.items[idFromParent+1].value = element.context.parent.items[idFromParent+1].rawValue.replace(regex, "$1$2" + neww +"$4") +"\n"
+        }
+        catch (e) {
+          console.log("Could not change name for document ", i , e)
+        }
       }
 
-      neww = neww.trim()
+      this.code = ""
+      for (i=0; i < parsed.length; i++) {
+        var code = parsed[i].toString()
+        //enforce ("---") on first line
+        if (! code.startsWith("---")){
+          code = "---\n" + code
+        }
+        this.code += code
+      }
 
-      // TODO : remove some chars like " , ' ; [] {} * (maybe regex) also remove accented chars
-
-      // https://regex101.com/r/EjT3KG/3
-      const regex = new RegExp("(^)( *)(metadata *:\\n)((^\\2 {2,4}.*\\n)*)(^\\2 {2,4})(name *:)( *)("+ old+")([-|\\w]*)", "gm");
-      this.code = this.code.replace(regex, "$1$2$3$4$6$7 " + neww +"$10")
     },
-    namespace(neww, old) {
+    namespace(neww) {
       neww = neww.trim()
 
-      if (neww.length !== 0 && Math.abs(old.length - neww.length) > 1){
-        //assume copy-paste for syncing => do nothing
-        return
+      var parsed=parseCST(this.code)
+      for (var i=0; i < parsed.length; i++) {
+        try {
+          //want to remove ? Mark as comment, will be deleted when rendering result
+          if (neww.length == 0){
+            const [element, idFromParent ] = CstUtils.findNode(CstUtils.convertJsonPath("/metadata/namespace"), parsed[i])
+            element.context.parent.items[idFromParent].value = "#EDITAH_TO_BE_DELETED"
+          }
+          else {
+            const [element, idFromParent ] = CstUtils.findNode(CstUtils.convertJsonPath("/metadata/namespace"), parsed[i])
+            // found path : change
+            if (element !== undefined) {
+              const regex = new RegExp("^(:?)(.*)$", "gm");
+              element.context.parent.items[idFromParent+1].value = element.context.parent.items[idFromParent+1].rawValue.replace(regex, "$1 " + neww)  +"\n"
+            }
+            // not found path : add after name (ugly)
+            else {
+              const [element, idFromParent ] = CstUtils.findNode(CstUtils.convertJsonPath("/metadata/name"), parsed[i])
+              element.context.parent.items[idFromParent+1].value = element.context.parent.items[idFromParent+1].rawValue + "\n  namespace: " + neww + "\n"
+            }
+          }
+        }
+        catch (e) {
+          console.log("Could not change namespace for document ", i , e)
+        }
       }
 
-      //test if new is empty => if so remove field ( Ref : https://regex101.com/r/1VoyVm/1 )
-      if (neww.length == 0){
-        const regex = new RegExp("(^)( *)(metadata *:\\n)((^\\2 {2,4}.*\\n)*)(^\\2 {2,4}namespace *:.*\\n)", "gm")
-        this.code = this.code.replace(regex, "$1$2$3$4" )
-      }
-      //if old was empty : add again field (https://regex101.com/r/bYw1GT/1)
-      else if (old.length == 0) {
-        const regex = new RegExp("(^)( *)(metadata *:\\n)((^\\2 {2,4}.*\\n)*)(^\\2 {2,4})(name *:.*\\n)", "gm")
-        this.code = this.code.replace(regex, "$1$2$3$4$6$7$6namespace: " + neww +"\n" )
-      }
-      // https://regex101.com/r/2Hpt9K/3 : replace existing
-      else {
-        const regex = new RegExp("(^)( *)(metadata *:\\n)((^\\2 {2,4}.*\\n)*)(^\\2 {2,4})(namespace *:)(.*\\n)", "gm");
-        this.code = this.code.replace(regex, "$1$2$3$4$6$7 " + neww + "\n")
+      this.code = ""
+      for (i=0; i < parsed.length; i++) {
+        var code = parsed[i].toString()
+        //enforce ("---") on first line
+        if (! code.startsWith("---")){
+          code = "---\n" + code
+        }
+        const regex = new RegExp("^.*#EDITAH_TO_BE_DELETED.*\\n?", "gm");
+        this.code += code.replace(regex,"")
       }
     },
   },
