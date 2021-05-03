@@ -49,8 +49,8 @@ export default {
       ready: false,
       valid: null,
       jsonSchema: null,
-      versionSelected: '1.20',
-      versionList: [ '1.20', '1.19', '1.18' ],
+      versionSelected: '1.21',
+      versionList: [ '1.21', '1.20', '1.19', '1.18' ],
       error: null,
       unRefedSchema: null,
       invalidYaml: null,
@@ -62,6 +62,7 @@ export default {
       refsDetection: `{%- set is_k8s = (apiVersion | default("") |length > 0) and (kind | default("") |length > 0) %}
 {%- if is_k8s %}
 # it's a k8s object
+	{%- set apiVersion = apiVersion.replace('.k8s.io','') -%}
   {%- set is_k8s_crd = apiVersion.split("/")[0].includes(".") %}
 # is this a CRD: {{ is_k8s_crd }}
   {%- set doc_refs = k8s_schemas[apiVersion.split("/")[0]] if is_k8s_crd else k8s_schemas["k8s.io"] %}
@@ -160,29 +161,39 @@ url: {{ doc_refs.url }}
       console.log(refDetect)
       if (refDetect !== undefined && refDetect !== null ) {
         var ref = refDetect.ref //refsDetection  'schema#' + '/definitions/io.k8s.api.core.' + docAsJson.apiVersion + '.' + docAsJson.kind
-        try {
-          //FIXME : ref detection may change schema !
-          const valid = vm.ajv.validate({ $ref: 'schema-' + this.versionSelected + '#' +ref }, docAsJson)
-          if (!valid) {
-            this.invalid=true
-            for (var j=0; j < vm.ajv.errors.length; j++){
-              parseErrors.push(new ParseError("schema", vm.ajv.errors[j], doc_id, cstDoc, full_string_doc))
+        if (! ref.includes("undefined")) {
+          try {
+            //TODO warn : ref detection may change schema if on CRD ressources
+            const valid = vm.ajv.validate({ $ref: 'schema-' + this.versionSelected + '#' +ref }, docAsJson)
+            if (!valid) {
+              this.invalid=true
+              for (var j=0; j < vm.ajv.errors.length; j++){
+                parseErrors.push(new ParseError("schema", vm.ajv.errors[j], doc_id, cstDoc, full_string_doc))
+              }
             }
           }
-        }
-        catch (e) {
-          console.error("error while validating agains json schema:", e)
-        }
-        var jsonDiffs = jsonpatch.compare(oldDocAsJson, JSON.parse(JSON.stringify(docAsJson)), true)
-        // Iterate over diffs and solve line position
-        for (var i=0; i < jsonDiffs.length; i++){
-          if (jsonDiffs[i].op === "remove") {
-            //some new errors in the parsing result :)
-            parseErrors.push(new ParseError("remove", { "message": "neeed remove", "dataPath": jsonDiffs[i].path}, doc_id, cstDoc, full_string_doc))
+          catch (e) {
+            if ("missingRef" in e){
+              parseErrors.push(new ParseError("unknownRef", {dataPath: "/apiVersion", keyword: "unknownRef", message: ref + " not found (may try v1beta1, v1alpha1 ...)"}, doc_id, cstDoc, full_string_doc))
+            }
+            else {
+              console.error("error while validating agains json schema:", e)
+            }
           }
+          var jsonDiffs = jsonpatch.compare(oldDocAsJson, JSON.parse(JSON.stringify(docAsJson)), true)
+          // Iterate over diffs and solve line position
+          for (var i=0; i < jsonDiffs.length; i++){
+            if (jsonDiffs[i].op === "remove") {
+              //some new errors in the parsing result :)
+              parseErrors.push(new ParseError("remove", { "message": "neeed remove", "dataPath": jsonDiffs[i].path}, doc_id, cstDoc, full_string_doc))
+            }
+          }
+        } else {
+          //TODO : would be good to send a warning !
+          console.log("Ingoring unresolved ref", ref)
         }
       }
-    //FIXME : need to send special ParseError : uknown Api if no ref found
+    //TODO : need to send special ParseError : uknown Api if no ref
     return parseErrors
     }
   },

@@ -42,10 +42,13 @@ export default class ParseError {
             filteredErrors.push(currErr)
           }
         }
+        else if (currErr.type === "unkownRef" ) {
+          filteredErrors.push(currErr)
+        }
         else if (currErr.type === "remove" ) {
           //TODO : set a hover for base64 decode proposal for data secrets
           //FIXME : should not ignore all but test resources named cpu and memory
-          var matches = [...currErr.message.dataPath.matchAll(/\/data\/.*|\/spec\/selector.*|.*\/spec\/clusterIPs.*|.*\/metadata\/labels.*|.*\/metadata\/annotations.*|.*\/spec\/nodeSelector.*|.*\/resources\/limits.*|.*\/resources\/requests.*|.*\/spec\/limits\/.*/g)]
+          var matches = [...currErr.message.dataPath.matchAll(/\/data\/.*|\/spec\/selector.*|.*\/spec\/clusterIPs.*|.*\/metadata\/labels.*|.*\/metadata\/annotations.*|.*\/spec\/nodeSelector.*|.*\/resources\/limits.*|.*\/resources\/requests.*|.*\/spec\/limits\/.*|.*\/spec\/hard\/.*|.*\/podSelector\/matchLabels\/.*|.*\/namespaceSelector\/matchLabels\/.*|\/stringData\/.*|.*\/labelSelector\/matchLabels\/.*/g)]
           if (matches.length == 0){
             filteredErrors.push(currErr)
           }
@@ -68,6 +71,8 @@ export default class ParseError {
       return this.message.dataPath + " " + this.message.message
     } else if (this.type === "remove" ) {
       return this.message.dataPath + " " + "unknown field must be removed"
+    } else if (this.type === "unknownRef" ) {
+      return this.message.message
     }
   }
 
@@ -77,6 +82,8 @@ export default class ParseError {
     } else if (this.type === "api" ) {
       return this.type + " " + this.message.schemaPath
     } else if (this.type === "remove" ) {
+      return "api"
+    } else if (this.type === "unknownRef" ) {
       return "api"
     }
   }

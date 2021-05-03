@@ -110,7 +110,7 @@ export default {
       setTimeout(() => this.isCopyLinuxActive = false, 1500)
     },
     heredocClipboard: function () {
-      var code = "cat <<EOF | kubectl apply -f - \n" + this.code + "\nEOF"
+      var code = "cat <<EOF | kubectl apply -f - \n" + this.code.replaceAll('$','\\$') + "\nEOF"
       this.$copyText(code).then(function () {
       }, function () {
         alert('Can not copy')
@@ -166,6 +166,7 @@ export default {
       for (var i=0; i < parsed.length; i++) {
         try {
           //TODO : if new is empty : empty whole name and keep after (- ?
+          //FIXME : /spec/containers[*]/env/[*]/valueFrom/configMapKeyRef/name to replace for 📚 v1.Pod configmap - env var valueFrom
           const [element, idFromParent ] = CstUtils.findNode(CstUtils.convertJsonPath("/metadata/name"), parsed[i])
           console.log(element.context.parent.items[idFromParent+1])//.parent[idFromParent+1])
 
