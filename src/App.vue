@@ -1,15 +1,15 @@
 <template>
   <div id="app">
     <div id="nav">
-      <router-link to="/Cloud_YAML">Cloud_YAML</router-link> |
-      <!--<a style="cursor: pointer;" @click="toggleDonate()">
+      <router-link to="/Cloud_YAML">Cloud_YAML</router-link> <!--|
+      <a style="cursor: pointer;" @click="toggleDonate()">
         <i class="ui icon dollar"/>Donate<i class="ui icon btc"/>
-      </a> -->
+      </a>
       <a style="float: right;display:block;cursor: pointer;" @click="toggleShareNetwork()" >
         <i class="ui right  icon share">
 
         </i>Share
-      </a>
+      </a>  -->
     </div>
     <router-view />
     <!-- FIXME : some media queries for correct btc render on mobile : input + copy button, no QR -->
