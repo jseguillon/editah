@@ -104,9 +104,6 @@ url: {{ doc_refs.url }}
       }
       this.$emit('parseErrors', this.parseErrors)
     },
-    refreshParse: function(newSchema) {
-      console.log("new schema", newSchema)
-    },
     getK8sSchema(){
       return {
         k8s_schemas: {
@@ -159,7 +156,6 @@ url: {{ doc_refs.url }}
 
 
       var refDetect = yaml.loadAll(nunjucks.renderString(this.refsDetection, Object.assign({}, docAsJson, this.getK8sSchema())))[0]
-      console.log(refDetect)
       if (refDetect !== undefined && refDetect !== null ) {
         var ref = refDetect.ref //refsDetection  'schema#' + '/definitions/io.k8s.api.core.' + docAsJson.apiVersion + '.' + docAsJson.kind
         if (! ref.includes("undefined")) {

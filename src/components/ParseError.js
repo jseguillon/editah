@@ -132,7 +132,6 @@ export default class ParseError {
   getPosition(cstDoc, fullStringDoc) {
     if (this.type !== "yaml" ) {
       try {
-        console.log("<hat",CstUtils.findNode(CstUtils.convertJsonPath(this.message.dataPath),cstDoc)[0].range, cstDoc, fullStringDoc)
         return CstUtils.getCharPosition(CstUtils.findNode(CstUtils.convertJsonPath(this.message.dataPath),cstDoc)[0].range, cstDoc, fullStringDoc)
       } catch(e) {console.log("could not find path for: ", e)}
     }

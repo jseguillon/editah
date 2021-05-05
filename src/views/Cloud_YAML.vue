@@ -55,7 +55,7 @@
 import MonacoEditor from '../components/MonacoEditor.js'
 import AutoComplete from "@/components/AutoComplete.vue"
 // Only dev
-import testsV1 from '@/assets/jsons/templates/tests.json'
+//import testsV1 from '@/assets/jsons/templates/tests.json'
 import v1 from '@/assets/jsons/templates/v1.json'
 import appsV1 from '@/assets/jsons/templates/apps.v1.json'
 import Validate from '../components/Validate.vue'
@@ -168,10 +168,7 @@ export default {
           //TODO : if new is empty : empty whole name and keep after (- ?
           //FIXME : /spec/containers[*]/env/[*]/valueFrom/configMapKeyRef/name to replace for 📚 v1.Pod configmap - env var valueFrom
           const [element, idFromParent ] = CstUtils.findNode(CstUtils.convertJsonPath("/metadata/name"), parsed[i])
-          console.log(element.context.parent.items[idFromParent+1])//.parent[idFromParent+1])
-
           const regex = new RegExp("^(:?)( *)(" + old + "[ ]*)([-|\\w]*)$", "gm");
-          console.log("^(:?)( *)(" + old + "[ ]*)([-|\\w]*)$")
           element.context.parent.items[idFromParent+1].value = element.context.parent.items[idFromParent+1].rawValue.replace(regex, "$1$2" + neww +"$4") +"\n"
         }
         catch (e) {
@@ -234,7 +231,7 @@ export default {
   },
   data() {
     // Create an array with for input auto select via concact plus name extraction
-    var templates = v1.concat(appsV1, testsV1)
+    var templates = v1.concat(appsV1)
     return {
       code: "---\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: myapp-welcome\ndata:\n  message: |\n    Welcome to editah.io Kube_YAML editor\n    No backend for total privacy\n    Subscribe to https://twitter.com/IoEditah on Twitter to stay tuned\n  features: |\n    * As you type validation against API schema\n    * No backend to keep your data private\n    * Fast search for examples, discover with random\n    * Multiple YAML documents support\n  hints: |\n    * Use F8 key to navigate from one error to another\n    * Shift+F8 to navigate backward \n    * Use F1 key to learn more about Monaco Editor feaures\n  incoming: |\n    * CRD support\n    * Internal Kubernetes validator mockup \n---\napiVersion: v1\nkind: ConfigMap\n# Uncomment (Ctrl + K, Ctrl + U) to see some error examples\n# wrong: wrong\n# immutable: yes\nmetadata:\n  name: myapp-error-samples\n",
       debouncedCode: "",
