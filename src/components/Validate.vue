@@ -62,8 +62,9 @@ export default {
       refsDetection: `{%- set is_k8s = (apiVersion | default("") |length > 0) and (kind | default("") |length > 0) %}
 {%- if is_k8s %}
 # it's a k8s object
-	{%- set apiVersion = apiVersion.replace('.k8s.io','') -%}
-  {%- set is_k8s_crd = apiVersion.split("/")[0].includes(".") %}
+	{%- set is_k8s_crd = apiVersion.split("/")[0].includes(".") and not (apiVersion.split("/")[0].includes(".k8s.io")) %}
+  {%- set apiVersion = apiVersion.replace('.k8s.io','') -%}
+  {%- set apiVersion = apiVersion.replace('.authorization','') -%}
 # is this a CRD: {{ is_k8s_crd }}
   {%- set doc_refs = k8s_schemas[apiVersion.split("/")[0]] if is_k8s_crd else k8s_schemas["k8s.io"] %}
   {%- set api_ns = apiVersion.split("/") %}
