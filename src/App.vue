@@ -14,7 +14,7 @@
     <router-view />
     <!-- FIXME : some media queries for correct btc render on mobile : input + copy button, no QR -->
     <!-- FIXME : debounce toggles -->
-    <div class="ui dimmer" style="z-index: 200000; background-color: rgba(0, 0, 0, 0.95);" v-bind:class="{ 'active': isDonateActive }" @click="toggleDonate()">
+    <div class="ui dimmer" style="z-index: 200000; background-color: rgba(0, 0, 0, 0.95);" v-if="isDonateActive" v-bind:class="{ 'active': isDonateActive }" @click="toggleDonate()">
       <div class="content">
         <img src="@/assets/raining-money.gif" />
         <h2 ref="btcHeader" class="ui header" style="color: white;cursor: pointer;" data-tooltip="Click to copy Btc address in clipboard or scan QR code" @click.prevent.stop="copyClipboardBtcAdress()">
