@@ -49,7 +49,7 @@
         <ShareNetwork style="color: white;"
             network="twitter"
             url="https://editah.io"
-            title="Editah.io launches *Cloud_YAML*: online editor and validator for Kubernetes YAMLs. It keeps your data private, because it uses no backend !"
+            title="Editah.io is brand new online editor and validator for Kubernetes YAMLs. Check it out !"
             hashtags="editah,kubernetes,yaml,online,devops"
             twitter-user="IoEditah"
           >
@@ -66,7 +66,7 @@
         <ShareNetwork style="color: white;"
             network="reddit"
             url="https://editah.io"
-            title="Editah.io launches *Cloud_YAML*: online editor and validator for Kubernetes YAMLs. It keeps your data private, because it uses no backend !"
+            title="Editah.io is brand new online editor and validator for Kubernetes YAMLs. Check it out !"
             hashtags="kubernetes,devops,online,yaml"
           >
           <h2 class="ui header" style="color: white;">
@@ -82,7 +82,7 @@
         <ShareNetwork style="color: white;"
             network="linkedin"
             url="https://editah.io"
-            title="Editah.io launches *Cloud_YAML*: online editor and validator for Kubernetes YAMLs. No backend = keep your data private !"
+            title="Editah.io is brand new online editor and validator for Kubernetes YAMLs. Check it out !"
             hashtags="kubernetes,devops,online,yaml"
           >
           <h2 class="ui header" style="color: white;">
