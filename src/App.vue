@@ -14,7 +14,7 @@
     <router-view />
     <!-- FIXME : some media queries for correct btc render on mobile : input + copy button, no QR -->
     <!-- FIXME : debounce toggles -->
-    <div class="ui dimmer" style="z-index: 200000; background-color: rgba(0, 0, 0, 0.95);" v-if="isDonateActive" v-bind:class="{ 'active': isDonateActive }" @click="toggleDonate()">
+    <div class="ui dimmer" style="position: fixed; z-index: 200000; background-color: rgba(0, 0, 0, 0.95);" v-if="isDonateActive" v-bind:class="{ 'active': isDonateActive }" @click="toggleDonate()">
       <div class="content">
         <img src="@/assets/raining-money.gif" style="height:200px;"/>
         <h2 ref="btcHeader" class="ui header" style="color: white;cursor: pointer;" data-tooltip="Click to copy Btc address in clipboard or scan QR code" @click.prevent.stop="copyClipboardBtcAdress()">
@@ -40,7 +40,7 @@
           </h2>
       </div>
     </div>
-    <div class="ui dimmer" style="z-index: 200000; background-color: rgba(0, 0, 0, 0.95);" v-bind:class="{ 'active': isShareNetworkActive }" @click="toggleShareNetwork()">
+    <div class="ui dimmer" style="position: fixed;z-index: 200000; background-color: rgba(0, 0, 0, 0.95);" v-bind:class="{ 'active': isShareNetworkActive }" @click="toggleShareNetwork()">
       <div class="content">
         <h1 class="ui inverted icon header">
           Spread the word !
