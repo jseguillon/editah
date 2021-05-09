@@ -48,7 +48,6 @@
           kubectl apply clipboard
         </button>
       </div>
-      <TwitterFeed style="margin-left:25%;width:50%" src="https://twitter.com/IoEditah?ref_src=twsrc%5Etfw"></TwitterFeed>
   </div>
 </template>
 

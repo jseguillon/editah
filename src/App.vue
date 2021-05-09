@@ -97,6 +97,7 @@
         </p>
       </div>
     </div>
+    <div style="margin-left:28%;width:56%"><TwitterFeed  src="https://twitter.com/IoEditah?ref_src=twsrc%5Etfw"></TwitterFeed></div>
     <div class="ui inverted vertical footer segment form-page">
       <div class="ui container">
         Copyright 2021 &copy;Editah.io - Online editors for Kubernetes resources. All rights reserved. <br/> Made with ❤️ by <a href="https://github.com/jseguillon">github.com/jseguillon</a>
