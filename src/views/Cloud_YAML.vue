@@ -48,6 +48,7 @@
           kubectl apply clipboard
         </button>
       </div>
+      <TwitterFeed style="margin-left:25%;width:50%" src="https://twitter.com/IoEditah?ref_src=twsrc%5Etfw"></TwitterFeed>
   </div>
 </template>
 
@@ -233,7 +234,7 @@ export default {
     // Create an array with for input auto select via concact plus name extraction
     var templates = v1.concat(appsV1)
     return {
-      code: "---\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: myapp-welcome\ndata:\n  message: |\n    Welcome to editah.io, best online Kubernetes editor, powered by Monaco editor\n    Subscribe https://twitter.com/IoEditah to stay tuned 👀\n  features: |\n    * As you type validation against API schema ⭐\n    * No backend to keep your data private 🔒\n    * Fast search for examples, discover with random 📚\n    * Multiple YAML documents support 🦄\n  hints: |\n    * Use F8 key to navigate from one error to another\n    * Shift+F8 to navigate backward \n    * Use F1 key to learn more about Monaco Editor feaures\n  incoming: |\n    * CRD support, Internal Kubernetes validator mockup or anything you'd suggest\n---\n# Uncomment (Ctrl + K, Ctrl + U) to see some error samples\nkind: ConfigMap\n# wrong: wrong\n# immutable: yes\nmetadata:\n  name: myapp-error-samples\napiVersion: v1\n",
+      code: "---\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: myapp-welcome\ndata:\n  message: |\n    Welcome to editah.io, best online Kubernetes editor, powered by Monaco editor\n    Follow https://twitter.com/IoEditah to stay tuned 👀\n  features: |\n    * As you type validation against API schema ⭐\n    * No backend to keep your data private 🔒\n    * Fast search for examples, discover with random 📚\n    * Multiple YAML documents support 🦄\n  hints: |\n    * Use F8 key to navigate from one error to another\n    * Shift+F8 to navigate backward \n    * Use F1 key to learn more about Monaco Editor feaures\n  incoming: |\n    * CRD support, Internal Kubernetes validator mockup or anything you'd suggest\n---\n# Uncomment (Ctrl + K, Ctrl + U) to see some error samples\nkind: ConfigMap\n# wrong: wrong\n# immutable: yes\nmetadata:\n  name: myapp-error-samples\napiVersion: v1\n",
       debouncedCode: "",
       isCopyLinuxActive: false,
       isHeredocActive: false,
