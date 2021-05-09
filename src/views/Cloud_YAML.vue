@@ -133,6 +133,8 @@ export default {
         this.$refs.editor.getEditor().setValue(this.filterName(event)[0].content)
         this.editor.revealPosition({ lineNumber: 1, column: 1 });
         this.editor.setPosition({ lineNumber: 2, column: 1 })
+        console.log(window.screen.availWidth )
+        if (window.screen.availWidth > 825) {
         this.$refs.editor.focus()
         this.name="myapp"
       }
