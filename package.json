@@ -19,6 +19,7 @@
     "vue": "^2.6.11",
     "vue-clipboard2": "^0.3.1",
     "vue-router": "^3.2.0",
+    "vuejs-twitter-feed": "^1.0.1",
     "z-schema": "^5.0.0"
   },
   "devDependencies": {
