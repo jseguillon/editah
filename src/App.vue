@@ -1,28 +1,29 @@
 <template>
   <div id="app">
     <div id="nav">
-      <router-link to="/Cloud_YAML">Cloud_YAML</router-link> <!--|
+      <router-link to="/Cloud_YAML">Cloud_YAML</router-link> |
       <a style="cursor: pointer;" @click="toggleDonate()">
         <i class="ui icon dollar"/>Donate<i class="ui icon btc"/>
       </a>
-      <a style="float: right;display:block;cursor: pointer;" @click="toggleShareNetwork()" >
+      <a style="float: right;display:block;cursor: pointer;" @click="toggleShareNetwork()" ><!-- TODO doge-->
         <i class="ui right  icon share">
 
         </i>Share
-      </a>  -->
+      </a>
     </div>
     <router-view />
     <!-- FIXME : some media queries for correct btc render on mobile : input + copy button, no QR -->
     <!-- FIXME : debounce toggles -->
     <div class="ui dimmer" style="z-index: 200000; background-color: rgba(0, 0, 0, 0.95);" v-if="isDonateActive" v-bind:class="{ 'active': isDonateActive }" @click="toggleDonate()">
       <div class="content">
-        <img src="@/assets/raining-money.gif" />
+        <img src="@/assets/raining-money.gif" style="height:200px;"/>
         <h2 ref="btcHeader" class="ui header" style="color: white;cursor: pointer;" data-tooltip="Click to copy Btc address in clipboard or scan QR code" @click.prevent.stop="copyClipboardBtcAdress()">
             <i class="large inverted icons" style="color: white; ">
               <i class="btc icon" style="color: white;"></i>
             </i>
+            <p style="word-break: break-all;">
             {{ btcAddress }}
-            <br/>
+            </p>
             <img src="btcQr.png"  style="width:33%" />
           </h2>
           <h2 class="ui header" style="color: white;cursor: pointer;" data-tooltip="Click to open Lydia donation" @click="openDonate()">
@@ -42,7 +43,7 @@
     <div class="ui dimmer" style="z-index: 200000; background-color: rgba(0, 0, 0, 0.95);" v-bind:class="{ 'active': isShareNetworkActive }" @click="toggleShareNetwork()">
       <div class="content">
         <h1 class="ui inverted icon header">
-          Spread the world !
+          Spread the word !
         </h1>
 
         <p style="margin-top: 40px">
@@ -96,7 +97,11 @@
         </p>
       </div>
     </div>
-
+    <div class="ui inverted vertical footer segment form-page">
+      <div class="ui container">
+        Copyright 2021 &copy;Editah.io - Online editors for Kubernetes resources. All rights reserved. <br/> Made with ❤️ by <a href="https://github.com/jseguillon">github.com/jseguillon</a>
+      </div>
+    </div>
   </div>
 
 </template>
@@ -143,6 +148,13 @@ export default {
 </script>
 
 <style>
+.ui.footer.form-page {
+  margin-top: 10px;
+}
+
+.ui.dimmer {
+  height: 110%;
+}
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;

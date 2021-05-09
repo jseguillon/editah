@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="validator">
     <div class="myicon">
     <i class="bigger icons button" data-tooltip="Click for settings" @click="toggleInfoBox()">
         <i class="round-bubble circular inverted thumbs link icon" v-bind:class="{ 'sync': isLoading, 'grey': isLoading, 'up': (!isLoading && filteredErrors.length == 0), 'green': (!isLoading && filteredErrors.length == 0), 'red': (!isLoading && filteredErrors.length != 0), 'down': (!isLoading && filteredErrors.length != 0)}"  style="box-shadow: 5px 10px 5px 0px rgba(0,0,0,0.75);"></i>
@@ -279,6 +279,15 @@ i.icons .icon:first-child{
     to {
         opacity:0;
     }
+}
+
+
+@media screen and (min-width: 0px) and (max-width: 480px) {
+  .validator{ display: none; }  /* show it on small screens */
+}
+
+@media screen and (min-width: 480px) {
+  .validator { display: block; }   /* hide it elsewhere */
 }
 #infobox{
   background: white;

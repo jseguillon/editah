@@ -7,7 +7,7 @@
                 <div class="input-auto">
                   <AutoComplete ref="autocomplete"
                   :items="templateKeys()"
-                  placeholder="example: 'Pod mini', 'Serv ful', etc."
+                  placeholder="example: 'pod ini', 'config env', 'api access', etc..."
                   v-on:selected="update"/>
                 </div>
           </div>
@@ -233,7 +233,7 @@ export default {
     // Create an array with for input auto select via concact plus name extraction
     var templates = v1.concat(appsV1)
     return {
-      code: "---\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: myapp-welcome\ndata:\n  message: |\n    Welcome to editah.io Kube_YAML editor\n    No backend for total privacy\n    Subscribe to https://twitter.com/IoEditah on Twitter to stay tuned\n  features: |\n    * As you type validation against API schema\n    * No backend to keep your data private\n    * Fast search for examples, discover with random\n    * Multiple YAML documents support\n  hints: |\n    * Use F8 key to navigate from one error to another\n    * Shift+F8 to navigate backward \n    * Use F1 key to learn more about Monaco Editor feaures\n  incoming: |\n    * CRD support\n    * Internal Kubernetes validator mockup \n---\napiVersion: v1\nkind: ConfigMap\n# Uncomment (Ctrl + K, Ctrl + U) to see some error examples\n# wrong: wrong\n# immutable: yes\nmetadata:\n  name: myapp-error-samples\n",
+      code: "---\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: myapp-welcome\ndata:\n  message: |\n    Welcome to editah.io, best online Kubernetes editor, powered by Monaco editor\n    Subscribe https://twitter.com/IoEditah to stay tuned 👀\n  features: |\n    * As you type validation against API schema ⭐\n    * No backend to keep your data private 🔒\n    * Fast search for examples, discover with random 📚\n    * Multiple YAML documents support 🦄\n  hints: |\n    * Use F8 key to navigate from one error to another\n    * Shift+F8 to navigate backward \n    * Use F1 key to learn more about Monaco Editor feaures\n  incoming: |\n    * CRD support, Internal Kubernetes validator mockup or anything you'd suggest\n---\n# Uncomment (Ctrl + K, Ctrl + U) to see some error samples\nkind: ConfigMap\n# wrong: wrong\n# immutable: yes\nmetadata:\n  name: myapp-error-samples\napiVersion: v1\n",
       debouncedCode: "",
       isCopyLinuxActive: false,
       isHeredocActive: false,
